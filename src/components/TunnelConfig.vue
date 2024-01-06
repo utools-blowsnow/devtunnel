@@ -29,6 +29,8 @@ export default {
       utools.dbStorage.setItem('config', JSON.stringify(this.form));
 
       this.$tunnelHelp.setDevTunnelPath(this.form.devtunnelPath);
+
+      this.$message.success('保存成功');
     }
   }
 }
