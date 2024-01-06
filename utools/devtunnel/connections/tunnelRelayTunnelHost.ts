@@ -47,17 +47,21 @@ import {
     RemotePortForwarder,
 } from '@microsoft/dev-tunnels-ssh-tcp';
 import {CancellationToken} from 'vscode-jsonrpc';
-import {SshHelpers} from './sshHelpers';
-import {MultiModeTunnelHost} from './multiModeTunnelHost';
-import {SessionPortKey} from './sessionPortKey';
-import {PortRelayConnectRequestMessage} from './messages/portRelayConnectRequestMessage';
-import {PortRelayConnectResponseMessage} from './messages/portRelayConnectResponseMessage';
+import {SshHelpers} from '@microsoft/dev-tunnels-connections/sshHelpers';
+import {MultiModeTunnelHost} from '@microsoft/dev-tunnels-connections/multiModeTunnelHost';
+import {SessionPortKey} from '@microsoft/dev-tunnels-connections/sessionPortKey';
+import {
+    PortRelayConnectRequestMessage
+} from '@microsoft/dev-tunnels-connections/messages/portRelayConnectRequestMessage';
+import {
+    PortRelayConnectResponseMessage
+} from '@microsoft/dev-tunnels-connections/messages/portRelayConnectResponseMessage';
 import {v4 as uuidv4} from 'uuid';
 
-import {TunnelHost} from './tunnelHost';
-import {isNode} from './sshHelpers';
-import {TunnelConnectionOptions} from './tunnelConnectionOptions';
-import {TunnelConnectionSession} from './tunnelConnectionSession';
+import {TunnelHost} from '@microsoft/dev-tunnels-connections/tunnelHost';
+import {isNode} from '@microsoft/dev-tunnels-connections/sshHelpers';
+import {TunnelConnectionOptions} from '@microsoft/dev-tunnels-connections/tunnelConnectionOptions';
+import {TunnelConnectionSession} from '@microsoft/dev-tunnels-connections/tunnelConnectionSession';
 
 const webSocketSubProtocol = 'tunnel-relay-host';
 const webSocketSubProtocolv2 = 'tunnel-relay-host-v2-dev';

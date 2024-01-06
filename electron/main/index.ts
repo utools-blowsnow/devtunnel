@@ -52,6 +52,7 @@ async function createWindow() {
             nodeIntegration: true,
             contextIsolation: false,
             nodeIntegrationInWorker: true,
+            webSecurity: false
         },
     })
 

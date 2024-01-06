@@ -14,6 +14,8 @@ export interface Mutils {
 
 
     getDevtunnelHelp: () => Promise<DevtunnelHelp>;
+
+    setLoggerListener(listener: Function): void;
 }
 
 

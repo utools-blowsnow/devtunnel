@@ -4,11 +4,12 @@ import {
     TunnelAccessScopes, TunnelConnectionMode,
     TunnelPort, TunnelProtocol
 } from "@microsoft/dev-tunnels-contracts";
-import {ManagementApiVersions, TunnelManagementHttpClient} from "./devtunnel/management";
-import {TunnelRelayTunnelHost} from './devtunnel/connections';
+import {ManagementApiVersions, TunnelManagementHttpClient} from "@microsoft/dev-tunnels-management";
+import {TunnelRelayTunnelHost} from './devtunnel/connections/tunnelRelayTunnelHost';
+import logger from './logger'
 
 const {exec, spawn} = require('child_process');
-
+const mutexify = require('mutexify/promise');
 const userAgent = 'test-connection/1.0';
 
 
@@ -42,12 +43,28 @@ export enum LoginPlatformEnum {
     AADCode = "-a -d",
 }
 
+const lock = mutexify();
+const lockTimeout = async function (ms) {
+    let release = await lock();
+    setTimeout(() => {
+        if (lock.locked) {
+            release();
+            console.log('lockTimeout release');
+        }
+    }, ms);
+    return release;
+}
 export class DevtunnelHelp {
     private _token = null;
     private _devtunnelPath = null;
+    private _hosts = {};
 
     constructor(devtunnelPath: any) {
         this._devtunnelPath = devtunnelPath;
+    }
+
+    initToken() {
+        return this.getToken()
     }
 
     private getTunnelManagementHttpClient(): TunnelManagementHttpClient {
@@ -55,58 +72,83 @@ export class DevtunnelHelp {
             userAgent,
             ManagementApiVersions.Version20230927preview,
             // Example: "github <gh-token>" or "Bearer <aad-token>"
-            this.getToken
+            () => this.getToken()
         );
 
         tunnelManagementClient.trace = function (msg) {
-            console.log(msg);
+            logger.trace('[devtunnel]', 'TunnelManagementHttpClient', msg);
         }
 
         return tunnelManagementClient;
     }
 
-    public async login(platform: LoginPlatformEnum) {
+    public async login(platformParams: LoginPlatformEnum) {
         const that = this;
         that._token = null;
         return new Promise((resolve, reject) => {
+            logger.trace('[devtunnel]', 'login', this._devtunnelPath + ` user login ` + platformParams);
             // 登陆
-            exec(`C:\\Users\\Administrator\\AppData\\Local\\Microsoft\\WinGet\\Links\\devtunnel.exe user login ` + platform, async (error, stdout, stderr) => {
-                console.log(stdout);
+            exec(this._devtunnelPath + ` user login ` + platformParams, async (error, stdout, stderr) => {
+                logger.trace('[devtunnel]', 'login', 'stdout', stdout);
+                if (error) {
+                    reject(error);
+                }
                 if (stdout.includes("Logged in")) {
+                    logger.info('[devtunnel]', 'login', '登陆成功')
                     // 重新获取登陆信息
                     resolve(await that.getToken());
                 } else {
+                    logger.error('[devtunnel]', 'login', '登陆失败')
                     reject(new Error('登陆失败'));
                 }
             })
         })
     }
 
-    private async getToken(): Promise<any> {
+    public async isLogin() {
+        return !!this._token;
+    }
+
+    private async getToken() {
         if (this._token) {
             return this._token;
         }
-        const cmd = `C:\\Users\\Administrator\\AppData\\Local\\Microsoft\\WinGet\\Links\\devtunnel.exe user show -v`;
+        const lockRelease = await lockTimeout(5000);
+        console.log('lockTimeout', lock.locked);
+        if (this._token) {
+            lockRelease();
+            return this._token;
+        }
+        const cmd = this._devtunnelPath + ` user show -v`;
         const that = this;
         return new Promise((resolve, reject) => {
             exec(cmd, (error, stdout, stderr) => {
+                if (error) {
+                    logger.error('[devtunnel]', 'getToken', error)
+                    reject(error);
+                }
+                logger.trace('[devtunnel]', 'getToken', 'stdout', stdout)
                 if (stdout.includes("Logged in as")) {
                     // 正则匹配 Logged in as imblowsnow using GitHub.
                     if (stdout.match(/Logged in as (.*) using GitHub\./)) {
-                        console.log('Logined as github');
+                        logger.info('[devtunnel]', 'getToken', 'Logined as github');
                         // UserId: [\w]+\n(.*?)\n
                         that._token = 'github ' + stdout.match(/UserId:[^\n]+\n([^\n]+)\n/)[1].trim();
                         resolve(this._token);
                     } else if (stdout.match(/Logged in as (.*) using Microsoft\./)) {
-                        console.log('Logined as azure');
+                        logger.info('[devtunnel]', 'getToken', 'Logined as azure');
                         // PUID:[\s\S]+\n(.*?)\n
                         that._token = 'Bearer ' + stdout.match(/PUID:[^\n]+\n([^\n]+)\n/)[1].trim();
                         resolve(this._token);
                     }
                 } else {
+                    logger.error('[devtunnel]', 'getToken', '未登陆')
                     reject(new DevtunnelNoLoginError('未登陆'));
                 }
             })
+        }).finally(() => {
+            lockRelease();
+            console.log('lockRelease');
         })
     }
 
@@ -144,6 +186,10 @@ export class DevtunnelHelp {
         }
     }
 
+    getClusterChineseName(clusterId) {
+        return CHINESE_CLUSTERS[clusterId] || clusterId;
+    }
+
     getTunnels() {
         try {
             let tunnelManagementClient = this.getTunnelManagementHttpClient();
@@ -161,7 +207,7 @@ export class DevtunnelHelp {
         }
     }
 
-    async createTunnel(tunnelId, clusterId, ports: TunnelPort[]) {
+    async createTunnel(tunnel, ports: TunnelPort[]) {
         try {
             let tunnelManagementClient = this.getTunnelManagementHttpClient();
             let tunnelAccessControlEntry = {
@@ -170,9 +216,10 @@ export class DevtunnelHelp {
                 scopes: [TunnelAccessScopes.Host, TunnelAccessScopes.Connect],
             };
 
-            const tunnel = {
-                tunnelId: tunnelId,
-                clusterId: clusterId,
+            const createTunnel = {
+                tunnelId: tunnel.tunnelId,
+                clusterId: tunnel.clusterId,
+                description: tunnel.description,
                 // name: 'imbload',
                 ports: ports,
                 accessControl: {
@@ -185,7 +232,7 @@ export class DevtunnelHelp {
                 includePorts: true,
             };
 
-            let tunnelInstance = await tunnelManagementClient.createTunnel(tunnel, tunnelRequestOptions);
+            let tunnelInstance = await tunnelManagementClient.createTunnel(createTunnel, tunnelRequestOptions);
 
 
             if (!tunnelInstance.endpoints || tunnelInstance.endpoints.length === 0) {
@@ -207,12 +254,14 @@ export class DevtunnelHelp {
     }
 
     // 更新映射通道
-    async updateTunnel(tunnelId, clusterId, ports: TunnelPort[]) {
+    async updateTunnel(tunnel) {
         try {
+            let ports = tunnel.ports;
             let tunnelManagementClient = this.getTunnelManagementHttpClient();
             let tunnelInstance = await tunnelManagementClient.updateTunnel({
-                clusterId: clusterId,
-                tunnelId: tunnelId,
+                clusterId: tunnel.clusterId,
+                tunnelId: tunnel.tunnelId,
+                description: tunnel.description,
             })
 
             tunnelInstance = await tunnelManagementClient.getTunnel(tunnelInstance, {
@@ -273,10 +322,24 @@ export class DevtunnelHelp {
             let host = new TunnelRelayTunnelHost(tunnelManagementClient);
 
             host.trace = (level, eventId, msg, err) => {
-                console.log('[' + tunnelId + ']', level, eventId, msg, err);
+                // Error = "error",
+                //     Warning = "warning",
+                //     Info = "info",
+                //     Verbose = "verbose"
+                let mlevel = 'info';
+                if (level === 'error') {
+                    mlevel = 'error';
+                } else if (level === 'warning') {
+                    mlevel = 'warn';
+                } else if (level === 'verbose') {
+                    mlevel = 'trace';
+                }
+                logger[mlevel]('[devtunnel]', '[' + tunnelId + ']', '[' + eventId + ']', msg);
             }
 
             await host.connect(<Tunnel>tunnelInstance);
+
+            this._hosts[tunnelId] = host;
 
             return tunnelInstance;
         } catch (e) {
@@ -286,6 +349,27 @@ export class DevtunnelHelp {
                 throw e;
             }
         }
+    }
+
+    isStartTunnel(tunnelId) {
+        return !!this._hosts[tunnelId];
+    }
+
+
+    async stopTunnel(tunnelId) {
+        if (this._hosts[tunnelId]) {
+            await ((this._hosts[tunnelId] as TunnelRelayTunnelHost).dispose());
+            delete this._hosts[tunnelId];
+        }
+    }
+
+    deleteTunnel(tunnelId, clusterId) {
+        let tunnelManagementClient = this.getTunnelManagementHttpClient();
+
+        return tunnelManagementClient.deleteTunnel({
+            clusterId: clusterId,
+            tunnelId: tunnelId,
+        });
     }
 
 }

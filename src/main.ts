@@ -7,6 +7,21 @@ import './assets/main.css'
 
 Vue.use(ElementUI);
 
-new Vue({
-    render: (h) => h(App)
-}).$mount('#app')
+console.log(window.mutils);
+Vue.prototype.$calcUnit = function (size: number) {
+    let units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+    let i = 0;
+    while (size >= 1024) {
+        size /= 1024;
+        i++;
+    }
+    return size.toFixed(2) + units[i];
+}
+window.mutils.getDevtunnelHelp().then((devtunnelHelp) => {
+    Vue.prototype.$tunnelHelp = devtunnelHelp;
+
+    new Vue({
+        render: (h) => h(App)
+    }).$mount('#app')
+})
+

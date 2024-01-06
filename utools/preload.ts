@@ -1,5 +1,6 @@
 import axios from 'axios';
-import {DevtunnelHelp} from "./devtunnel";
+import {DevtunnelHelp, DevtunnelNoLoginError, LoginPlatformEnum} from "./devtunnel";
+import logger from "./logger";
 
 const os = require('os');
 const fs = require('fs');
@@ -10,31 +11,31 @@ window['versions'] = {
     electron: () => process.versions.electron
 }
 
-async function downloadByGithub(githubUrl, options = {}) {
+async function downloadByGithub(githubPath, filePath, options = {}) {
     return await Promise.race([
-        axios.get("https://cdn.jsdelivr.net/gh/" + githubUrl, options),
-        axios.get("https://ghps.cc/https://github.com/" + githubUrl, options),
-        axios.get("https://hub.gitmirror.com/https://github.com/" + githubUrl, options)
+        axios.get("https://ghps.cc/https://github.com/" + githubPath + "/blob/master/" + filePath, options),
+        axios.get("https://hub.gitmirror.com/https://github.com/" + githubPath + "/blob/master/" + filePath, options)
     ]);
 }
 
-async function downloadAndSaveFiles(prefixPath, files = [], savePath) {
+async function downloadAndSaveFiles(prefixPath, files = {}, savePath) {
     let promises = [];
-    for (const fileName of files) {
-        promises.push(downloadByGithub(prefixPath + "/" + fileName, {
+    for (const githubFilePath of Object.keys(files)) {
+        promises.push(downloadByGithub(prefixPath, githubFilePath, {
             responseType: "arraybuffer"
         }).then((response) => {
             let data = response.data;
             let buffer = Buffer.from(data);
-            console.log("downloaded", savePath + "/" + fileName, buffer.length);
+            console.log("downloaded", savePath + "/" + files[githubFilePath], buffer.length);
             // 保存到本地
-            fs.writeFileSync(savePath + "/" + fileName, buffer);
+            fs.writeFileSync(savePath + "/" + files[githubFilePath], buffer);
         }))
     }
     return Promise.all(promises);
 }
 
-const baseGithubPath = "utools-blowsnow/image-enlarge"
+const baseGithubPath = "utools-blowsnow/devtunnel"
+let devtunnelHelpInstance = null;
 
 window.mutils = {
 
@@ -52,28 +53,35 @@ window.mutils = {
 
         let binList = fs.readdirSync(binPath);
         if (!binList.includes("devtunnel.exe")) {
-            await downloadAndSaveFiles(baseGithubPath + `/other`, [
-                "devtunnel.exe"
-            ], binPath);
+            await downloadAndSaveFiles(baseGithubPath, {
+                "/other/devtunnel.exe": "devtunnel.exe"
+            }, binPath);
+
+            logger.info("未找到Devtunnel，自动下载 devtunnel.exe");
 
             binList = fs.readdirSync(binPath);
         }
 
         console.log("binList", binPath, binList);
 
-        return Promise.resolve(binPath + "/" + "devtunnel.exe");
+        return Promise.resolve(binPath + "\\" + "devtunnel.exe");
     },
 
-    getDevtunnelHelp(): Promise<DevtunnelHelp> {
-        return new Promise((resolve, reject) => {
-            this.getDevtunnelPath().then((devtunnelPath) => {
-                resolve(new DevtunnelHelp(devtunnelPath));
-            })
-        });
+    async getDevtunnelHelp(): Promise<DevtunnelHelp> {
+        if (devtunnelHelpInstance) {
+            return devtunnelHelpInstance;
+        }
+        return this.getDevtunnelPath().then((devtunnelPath) => {
+            devtunnelHelpInstance = new DevtunnelHelp(devtunnelPath);
+            return devtunnelHelpInstance;
+        })
+    },
+
+
+    setLoggerListener(listener: Function) {
+        logger.setListener(listener);
     },
 }
-
-
 window.mutils.getDevtunnelHelp().then((devtunnelHelp) => {
-    console.log("devtunnelHelp", devtunnelHelp);
-});
+    devtunnelHelp.initToken();
+})
