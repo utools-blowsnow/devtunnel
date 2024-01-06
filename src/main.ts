@@ -17,11 +17,8 @@ Vue.prototype.$calcUnit = function (size: number) {
     }
     return size.toFixed(2) + units[i];
 }
-window.mutils.getDevtunnelHelp().then((devtunnelHelp) => {
-    Vue.prototype.$tunnelHelp = devtunnelHelp;
 
-    new Vue({
-        render: (h) => h(App)
-    }).$mount('#app')
-})
 
+new Vue({
+    render: (h) => h(App)
+}).$mount('#app')

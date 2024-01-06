@@ -10,10 +10,10 @@ export interface ProcessVersions {
 export interface Mutils {
     binPath: () => string;
 
-    getDevtunnelPath: () => Promise<string>;
+    getDevtunnelPath: (callback?) => Promise<string>;
 
 
-    getDevtunnelHelp: () => Promise<DevtunnelHelp>;
+    getDevtunnelHelp: (callback?) => Promise<DevtunnelHelp>;
 
     setLoggerListener(listener: Function): void;
 }

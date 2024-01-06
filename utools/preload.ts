@@ -48,18 +48,28 @@ window.mutils = {
     },
 
     // 初始化bin数据
-    async getDevtunnelPath() {
+    async getDevtunnelPath(callback=null) {
         let binPath = this.binPath();
 
         let binList = fs.readdirSync(binPath);
         if (!binList.includes("devtunnel.exe")) {
+            callback && callback("未找到Devtunnel，自动下载 devtunnel.exe");
+
             await downloadAndSaveFiles(baseGithubPath, {
                 "/other/devtunnel.exe": "devtunnel.exe"
             }, binPath);
 
-            logger.info("未找到Devtunnel，自动下载 devtunnel.exe");
+
+            console.log("未找到Devtunnel，自动下载 devtunnel.exe");
 
             binList = fs.readdirSync(binPath);
+
+            if (!binList.includes("devtunnel.exe")) {
+                callback && callback("下载失败");
+                throw new Error("下载失败");
+            }else{
+                callback && callback("下载成功 devtunnel.exe");
+            }
         }
 
         console.log("binList", binPath, binList);
@@ -67,11 +77,11 @@ window.mutils = {
         return Promise.resolve(binPath + "\\" + "devtunnel.exe");
     },
 
-    async getDevtunnelHelp(): Promise<DevtunnelHelp> {
+    async getDevtunnelHelp(callback=null): Promise<DevtunnelHelp> {
         if (devtunnelHelpInstance) {
             return devtunnelHelpInstance;
         }
-        return this.getDevtunnelPath().then((devtunnelPath) => {
+        return this.getDevtunnelPath(callback).then((devtunnelPath) => {
             devtunnelHelpInstance = new DevtunnelHelp(devtunnelPath);
             return devtunnelHelpInstance;
         })
@@ -82,6 +92,3 @@ window.mutils = {
         logger.setListener(listener);
     },
 }
-window.mutils.getDevtunnelHelp().then((devtunnelHelp) => {
-    devtunnelHelp.initToken();
-})

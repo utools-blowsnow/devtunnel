@@ -3,7 +3,7 @@ import VConsole from 'vconsole';
 import TunnelTable from "./components/TunnelTable.vue";
 import TunnelConfig from "./components/TunnelConfig.vue";
 import TunnelLog from "./components/TunnelLog.vue";
-
+import Vue from 'vue'
 let vConsole = new VConsole();
 vConsole.hideSwitch()
 
@@ -36,11 +36,33 @@ export default {
       },
 
       LoginPlatformEnum,
+
+      isInitTunnelHelp: false,
     }
   },
   watch: {},
   mounted() {
-    this.init();
+    let loadder = this.$loading({
+      lock: true,
+      text: '正在初始化...',
+      spinner: 'el-icon-loading',
+      background: 'rgba(0, 0, 0, 0.7)'
+    });
+    window.mutils.getDevtunnelHelp((msg) => {
+      loadder.close()
+      loadder = this.$loading({
+        lock: true,
+        text: msg,
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      });
+    }).then((devtunnelHelp) => {
+      Vue.prototype.$tunnelHelp = devtunnelHelp;
+      this.isInitTunnelHelp = true
+      this.init();
+    }).finally(() => {
+      loadder.close()
+    })
   },
   methods: {
     async init() {
@@ -59,37 +81,39 @@ export default {
 
 <template>
   <div id="app">
-    <div class="container">
-      <el-tabs v-model="activeTab" type="card" style="width: 100%">
-        <el-tab-pane label="通道" name="first">
-          <tunnel-table></tunnel-table>
-        </el-tab-pane>
-        <el-tab-pane label="配置" name="second">
-          <tunnel-config></tunnel-config>
-        </el-tab-pane>
-        <el-tab-pane label="日志" name="third">
-          <tunnel-log></tunnel-log>
-        </el-tab-pane>
-      </el-tabs>
-    </div>
-    <div class="footer">
-      <div class="footer-box">
-        <div>
-          <template v-if="isLogin">
-            流量：{{ $calcUnit(userLimit.current) }} / {{ $calcUnit(userLimit.limit) }}
-            <span>重置时间：{{ new Date(userLimit.resetTime * 1000).toLocaleString() }}</span>
-          </template>
-          <template v-else>
-            <span>未登录</span>
-            <el-button size="mini" type="primary" @click="toLogin(LoginPlatformEnum.AAD)">微软登陆
-            </el-button>
-            <el-button size="mini" type="primary" @click="toLogin(LoginPlatformEnum.Github)">
-              Github登陆
-            </el-button>
-          </template>
+    <template v-if="isInitTunnelHelp">
+      <div class="container">
+        <el-tabs v-model="activeTab" type="card" style="width: 100%">
+          <el-tab-pane label="通道" name="first">
+            <tunnel-table></tunnel-table>
+          </el-tab-pane>
+          <el-tab-pane label="配置" name="second">
+            <tunnel-config></tunnel-config>
+          </el-tab-pane>
+          <el-tab-pane label="日志" name="third">
+            <tunnel-log></tunnel-log>
+          </el-tab-pane>
+        </el-tabs>
+      </div>
+      <div class="footer">
+        <div class="footer-box">
+          <div>
+            <template v-if="isLogin">
+              流量：{{ $calcUnit(userLimit.current) }} / {{ $calcUnit(userLimit.limit) }}
+              <span>重置时间：{{ new Date(userLimit.resetTime * 1000).toLocaleString() }}</span>
+            </template>
+            <template v-else>
+              <span>未登录</span>
+              <el-button size="mini" type="primary" @click="toLogin(LoginPlatformEnum.AAD)">微软登陆
+              </el-button>
+              <el-button size="mini" type="primary" @click="toLogin(LoginPlatformEnum.Github)">
+                Github登陆
+              </el-button>
+            </template>
+          </div>
         </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 

@@ -2,33 +2,19 @@
   "logo": "logo.png",
   "main": "index.html",
   "preload": "preload.js",
-  "name": "图片无损放大",
+  "name": "内网穿透",
   "version": "1.0.0",
-  "pluginName": "imageenlarge",
-  "description": "图片无损放大",
+  "pluginName": "tunnel",
+  "description": "内网穿透",
   "author": "blowsnow",
   "homepage": "https://github.com/utools-blowsnow/image-enlarge",
   "features": [
     {
       "code": "open",
-      "explain": "图片无损放大",
+      "explain": "内网穿透",
       "cmds": [
-        "图片无损放大",
-        "图片",
-        "无损放大"
-      ]
-    },
-    {
-      "code": "files",
-      "explain": "图片无损放大",
-      "cmds": [
-        {
-          "type": "files",
-          "label": "图片",
-          "fileType": "file",
-          "minLength": 1,
-          "maxLength": 20
-        }
+        "内网穿透",
+        "tunnel"
       ]
     }
   ]
