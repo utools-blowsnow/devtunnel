@@ -6,6 +6,10 @@ export default defineComponent({
   data() {
     return {
       logList: [],
+
+      config: {
+        logLevel: 'info',
+      },
     }
   },
   computed: {
@@ -21,8 +25,12 @@ export default defineComponent({
     }
   },
   mounted() {
+    this.config = {
+      ...this.config,
+      ...JSON.parse(utools.dbStorage.getItem('config') || '{}')
+    };
     window.mutils.setLoggerListener((level, params) => {
-      if (level.toLowerCase() === 'trace') return;
+      if (level.toLowerCase() === 'trace' && this.config.logLevel === 'info') return;
       this.logList.push(params)
     })
   }
