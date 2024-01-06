@@ -19,12 +19,16 @@ export default {
         ...this.form,
         ...JSON.parse(utools.dbStorage.getItem('config'))
       };
+
+      this.$tunnelHelp.setDevTunnelPath(this.form.devtunnelPath);
     }
   },
   methods: {
     onSubmit() {
       console.log('submit!');
       utools.dbStorage.setItem('config', JSON.stringify(this.form));
+
+      this.$tunnelHelp.setDevTunnelPath(this.form.devtunnelPath);
     }
   }
 }

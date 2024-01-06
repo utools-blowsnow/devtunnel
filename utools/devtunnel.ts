@@ -51,6 +51,10 @@ export class DevtunnelHelp {
         this._devtunnelPath = devtunnelPath;
     }
 
+    setDevTunnelPath(devtunnelPath) {
+        this._devtunnelPath = devtunnelPath;
+    }
+
     initToken() {
         return this.getToken()
     }

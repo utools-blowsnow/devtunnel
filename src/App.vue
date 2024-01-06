@@ -58,6 +58,10 @@ export default {
         background: 'rgba(0, 0, 0, 0.7)'
       });
     }).then(async (devtunnelHelp) => {
+      if ( utools.dbStorage.getItem('config')) {
+        let config = JSON.parse(utools.dbStorage.getItem('config'));
+        if (config.devtunnelPath) devtunnelHelp.setDevTunnelPath(config.devtunnelPath);
+      }
       try {
         await devtunnelHelp.initToken();
       }catch (e){}
