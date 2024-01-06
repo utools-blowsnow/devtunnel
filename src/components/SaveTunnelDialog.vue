@@ -53,6 +53,12 @@ export default defineComponent({
 
     async onSubmit() {
       console.log('submit!');
+      let loadder = this.$loading({
+        lock: true,
+        text: '正在保存...',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      })
       try {
         if (this.isAdd) {
           await this.$tunnelHelp.createTunnel(this.form, this.form.ports);
@@ -63,6 +69,8 @@ export default defineComponent({
         console.error(e)
         this.$message.error(e.message)
         return;
+      }finally {
+        loadder.close()
       }
       this.drawer = false;
       this.$emit('update')

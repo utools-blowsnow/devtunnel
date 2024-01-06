@@ -6,6 +6,9 @@
   "version": "1.0.0",
   "pluginName": "tunnel",
   "description": "内网穿透",
+  "development": {
+    "main": "http://127.0.0.1:9000/index.html"
+  },
   "author": "blowsnow",
   "homepage": "https://github.com/utools-blowsnow/image-enlarge",
   "features": [

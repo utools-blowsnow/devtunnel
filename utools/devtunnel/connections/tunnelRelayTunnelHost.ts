@@ -543,8 +543,8 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
             this.trace(TraceLevel.Verbose, 0, `Forwarding port ${port.portNumber}`);
             try {
                 // 解析远程转发数据
-                this.traceInfo('forwardPort description: ' + port.description + "----" + port.description.split(':').length);
-                if (port.description.split(':').length === 2) {
+                this.traceInfo('forwardPort description: ' + port.description);
+                if (port.description && port.description.split(':').length === 2) {
                     const remoteAddress = port.description.split(':')[0];
                     const remotePort = Number(port.description.split(':')[1]);
                     this.traceInfo('forwardPort custom remote: ' + port.description);
@@ -672,7 +672,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
                     const pfs = session.getService(PortForwardingService)!;
                     // 解析远程转发数据
                     this.traceInfo('port description: ' + port.description);
-                    if (port.description.split(':').length === 2) {
+                    if (port.description && port.description.split(':').length === 2) {
                         const remoteAddress = port.description.split(':')[0];
                         const remotePort = Number(port.description.split(':')[1]);
                         forwardPromises.push(this.forwardPort(pfs, port, remoteAddress, remotePort));

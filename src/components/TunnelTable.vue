@@ -56,7 +56,9 @@ export default {
         background: 'rgba(0, 0, 0, 0.7)'
       })
       try {
-        await this.$tunnelHelp.startTunnel(tunnel.tunnelId, tunnel.clusterId);
+        await this.$tunnelHelp.startTunnel(tunnel.tunnelId, tunnel.clusterId, () => {
+          tunnel.isStarted = false;
+        });
         tunnel.isStarted = true;
       }catch (e){
         this.$message.error(e.message)
@@ -107,8 +109,8 @@ export default {
           <el-form label-position="left" inline class="demo-table-expand">
             <el-form-item label="当前下载 / 当前上传">
               <span>{{
-                  $calcUnit(scope.row.status.downloadRate.current || 0)
-                }} / {{ $calcUnit(scope.row.status.uploadRate.current || 0) }}</span>
+                  $calcUnit(scope.row.status.downloadRate ? scope.row.status.downloadRate.current : 0)
+                }} / {{ $calcUnit(scope.row.status.uploadRate ? scope.row.status.uploadRate.current : 0) }}</span>
             </el-form-item>
             <el-form-item label="总下载量 / 总上传量">
               <span>{{

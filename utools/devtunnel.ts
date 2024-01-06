@@ -184,14 +184,20 @@ export class DevtunnelHelp {
         return CHINESE_CLUSTERS[clusterId] || clusterId;
     }
 
-    getTunnels() {
+    async getTunnels() {
         try {
             let tunnelManagementClient = this.getTunnelManagementHttpClient();
 
-
-            return tunnelManagementClient.listTunnels(null, null, {
+            let tunnels = await tunnelManagementClient.listTunnels(null, null, {
                 includePorts: true,
             });
+
+            for (const tunnel of tunnels) {
+                if (tunnel.ports.length === 0){
+                    tunnel.ports = await tunnelManagementClient.listTunnelPorts(tunnel)
+                }
+            }
+            return tunnels;
         } catch (e) {
             if (e.response && e.response.status === 401) {
                 throw new DevtunnelNoLoginError('未登陆');
@@ -300,7 +306,7 @@ export class DevtunnelHelp {
     }
 
 
-    async startTunnel(tunnelId, clusterId) {
+    async startTunnel(tunnelId, clusterId, closeCallback = null) {
         try {
             let tunnelManagementClient = this.getTunnelManagementHttpClient();
 
@@ -323,6 +329,7 @@ export class DevtunnelHelp {
                 let mlevel = 'info';
                 if (level === 'error') {
                     mlevel = 'error';
+                    console.error(err)
                 } else if (level === 'warning') {
                     mlevel = 'warn';
                 } else if (level === 'verbose') {
@@ -331,9 +338,20 @@ export class DevtunnelHelp {
                 logger[mlevel]('[devtunnel]', '[' + tunnelId + ']', '[' + eventId + ']', msg);
             }
 
+
+
             await host.connect(<Tunnel>tunnelInstance);
 
             this._hosts[tunnelId] = host;
+
+            let timer = setInterval(() => {
+                if (host.isDisposed){
+                    clearInterval(timer);
+                    delete this._hosts[tunnelId];
+
+                    closeCallback && closeCallback();
+                }
+            }, 1000)
 
             return tunnelInstance;
         } catch (e) {
