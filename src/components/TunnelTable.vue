@@ -21,6 +21,7 @@ export default {
     openLink(url) {
       // 打开新窗口地址
       console.log('openLink', url);
+      utools.shellOpenExternal(url)
     },
     openSaveTunnelDialog(tunnel) {
       this.$refs.saveTunnelDialog.open(tunnel)
@@ -48,8 +49,20 @@ export default {
 
     async startTunnel(tunnel) {
       console.log('startTunnel', tunnel);
-      await this.$tunnelHelp.startTunnel(tunnel.tunnelId, tunnel.clusterId);
-      tunnel.isStarted = true;
+      let loadder = this.$loading({
+        lock: true,
+        text: '正在启动通道...',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      })
+      try {
+        await this.$tunnelHelp.startTunnel(tunnel.tunnelId, tunnel.clusterId);
+        tunnel.isStarted = true;
+      }catch (e){
+        this.$message.error(e.message)
+      }finally {
+        loadder.close()
+      }
     },
     async stopTunnel(tunnel) {
       console.log('stopTunnel', tunnel);

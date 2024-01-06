@@ -13,11 +13,18 @@ export default {
   },
   async mounted() {
     this.form.devtunnelPath = await window.mutils.getDevtunnelPath();
-    this.clusters = await this.$tunnelHelp.getClusters();
+    // this.clusters = await this.$tunnelHelp.getClusters();
+    if ( utools.dbStorage.getItem('config')) {
+      this.form = {
+        ...this.form,
+        ...JSON.parse(utools.dbStorage.getItem('config'))
+      };
+    }
   },
   methods: {
     onSubmit() {
       console.log('submit!');
+      utools.dbStorage.setItem('config', JSON.stringify(this.form));
     }
   }
 }
@@ -25,11 +32,11 @@ export default {
 
 <template>
   <el-form ref="form" :model="form" label-width="120px" style="margin: 0 20px">
-    <el-form-item label="集群区域">
-      <el-select v-model="form.clusterId" placeholder="请选择集群区域">
-        <el-option v-for="item in clusters" :label="item.label" :value="item.clusterId"></el-option>
-      </el-select>
-    </el-form-item>
+<!--    <el-form-item label="集群区域">-->
+<!--      <el-select v-model="form.clusterId" placeholder="请选择集群区域">-->
+<!--        <el-option v-for="item in clusters" :label="item.label" :value="item.clusterId"></el-option>-->
+<!--      </el-select>-->
+<!--    </el-form-item>-->
     <el-form-item label="devtunnel路径">
       <el-input v-model="form.devtunnelPath"></el-input>
       <small>下载地址：https://github.com/utools-blowsnow/devtunnel/blob/master/other/devtunnel.exe</small>

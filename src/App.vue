@@ -48,6 +48,7 @@ export default {
       spinner: 'el-icon-loading',
       background: 'rgba(0, 0, 0, 0.7)'
     });
+    console.log('window.mutils', window.mutils);
     window.mutils.getDevtunnelHelp((msg) => {
       loadder.close()
       loadder = this.$loading({
@@ -56,10 +57,13 @@ export default {
         spinner: 'el-icon-loading',
         background: 'rgba(0, 0, 0, 0.7)'
       });
-    }).then((devtunnelHelp) => {
+    }).then(async (devtunnelHelp) => {
+      await devtunnelHelp.initToken();
       Vue.prototype.$tunnelHelp = devtunnelHelp;
       this.isInitTunnelHelp = true
       this.init();
+    }).catch(e => {
+      this.$message.error(e.message)
     }).finally(() => {
       loadder.close()
     })

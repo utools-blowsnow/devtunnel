@@ -9,7 +9,6 @@ import {TunnelRelayTunnelHost} from './devtunnel/connections/tunnelRelayTunnelHo
 import logger from './logger'
 
 const {exec, spawn} = require('child_process');
-const mutexify = require('mutexify/promise');
 const userAgent = 'test-connection/1.0';
 
 
@@ -43,17 +42,6 @@ export enum LoginPlatformEnum {
     AADCode = "-a -d",
 }
 
-const lock = mutexify();
-const lockTimeout = async function (ms) {
-    let release = await lock();
-    setTimeout(() => {
-        if (lock.locked) {
-            release();
-            console.log('lockTimeout release');
-        }
-    }, ms);
-    return release;
-}
 export class DevtunnelHelp {
     private _token = null;
     private _devtunnelPath = null;
@@ -113,12 +101,6 @@ export class DevtunnelHelp {
         if (this._token) {
             return this._token;
         }
-        const lockRelease = await lockTimeout(5000);
-        console.log('lockTimeout', lock.locked);
-        if (this._token) {
-            lockRelease();
-            return this._token;
-        }
         const cmd = this._devtunnelPath + ` user show -v`;
         const that = this;
         return new Promise((resolve, reject) => {
@@ -146,9 +128,6 @@ export class DevtunnelHelp {
                     reject(new DevtunnelNoLoginError('未登陆'));
                 }
             })
-        }).finally(() => {
-            lockRelease();
-            console.log('lockRelease');
         })
     }
 
