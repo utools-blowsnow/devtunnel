@@ -10,7 +10,10 @@
     "main": "http://127.0.0.1:9000/index.html"
   },
   "author": "blowsnow",
-  "homepage": "https://github.com/utools-blowsnow/image-enlarge",
+  "platform": [
+    "win32"
+  ],
+  "homepage": "https://github.com/utools-blowsnow/devtunnel",
   "features": [
     {
       "code": "open",

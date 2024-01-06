@@ -73,7 +73,7 @@ export default defineComponent({
         loadder.close()
       }
       this.drawer = false;
-      this.$emit('update')
+      this.$emit('update', this.form)
     },
     onCancel() {
       this.drawer = false;

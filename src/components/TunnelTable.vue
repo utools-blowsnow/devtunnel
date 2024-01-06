@@ -75,6 +75,14 @@ export default {
       console.log('updateTunnel', tunnel);
       this.openSaveTunnelDialog({...tunnel})
     },
+    async onSaveTunnel(tunnel) {
+      console.log('onSaveTunnel', tunnel);
+      if(this.$tunnelHelp.isStartTunnel(tunnel.tunnelId)){
+        await this.stopTunnel(tunnel);
+        await this.startTunnel(tunnel);
+      }
+      this.refreshTunnel()
+    },
     deleteTunnel(tunnel) {
       console.log('deleteTunnel', tunnel);
       this.$confirm('此操作将永久删除该通道, 是否继续?', '提示', {
@@ -192,7 +200,7 @@ export default {
       </el-table-column>
     </el-table>
 
-    <save-tunnel-dialog ref="saveTunnelDialog" @update="refreshTunnel"></save-tunnel-dialog>
+    <save-tunnel-dialog ref="saveTunnelDialog" @update="onSaveTunnel"></save-tunnel-dialog>
   </div>
 </template>
 

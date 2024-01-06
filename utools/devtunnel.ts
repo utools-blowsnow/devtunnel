@@ -273,18 +273,13 @@ export class DevtunnelHelp {
                     return p.portNumber === port.portNumber
                 })
             })
-            let addPorts = ports.filter((port) => {
-                return !tunnelInstance.ports.find((p) => {
-                    return p.portNumber === port.portNumber
-                })
-            })
 
             if (deletePorts.length > 0) {
                 await tunnelManagementClient.deleteTunnelPort(tunnelInstance, deletePorts[0].portNumber);
             }
 
-            if (addPorts.length > 0) {
-                await tunnelManagementClient.createTunnelPort(tunnelInstance, addPorts[0]);
+            for (const port of ports) {
+                await tunnelManagementClient.createOrUpdateTunnelPort(tunnelInstance, port);
             }
 
             if (!tunnelInstance.endpoints || tunnelInstance.endpoints.length === 0) {
