@@ -55,18 +55,21 @@ window.mutils = {
         if (!binList.includes("devtunnel.exe")) {
             callback && callback("未找到Devtunnel，自动下载 devtunnel.exe");
 
-            await downloadAndSaveFiles(baseGithubPath, {
-                "/other/devtunnel.exe": "devtunnel.exe"
-            }, binPath);
-
+            try {
+                await downloadAndSaveFiles(baseGithubPath, {
+                    "/other/devtunnel.exe": "devtunnel.exe"
+                }, binPath);
+            }catch (e) {
+                throw new Error("下载失败: 请自行下载devtunnel.exe，放到" + binPath + "目录下");
+            }
 
             console.log("未找到Devtunnel，自动下载 devtunnel.exe");
 
             binList = fs.readdirSync(binPath);
 
             if (!binList.includes("devtunnel.exe")) {
-                callback && callback("下载失败");
-                throw new Error("下载失败");
+                callback && callback("下载失败: 请自行下载devtunnel.exe，放到" + binPath + "目录下");
+                throw new Error("下载失败: 请自行下载devtunnel.exe，放到" + binPath + "目录下");
             }else{
                 callback && callback("下载成功 devtunnel.exe");
             }

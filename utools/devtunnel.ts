@@ -36,10 +36,10 @@ export class DevtunnelNoLoginError extends Error {
 
 export enum LoginPlatformEnum {
     Github = "-g",
-    GithubCode = "-g -d",
+    GithubCode = "-gd",
 
     AAD = "-a",
-    AADCode = "-a -d",
+    AADCode = "-ad",
 }
 
 export class DevtunnelHelp {
@@ -70,26 +70,41 @@ export class DevtunnelHelp {
         return tunnelManagementClient;
     }
 
-    public async login(platformParams: LoginPlatformEnum) {
+    public async login(platformParams: LoginPlatformEnum,callbackCode=null) {
         const that = this;
         that._token = null;
         return new Promise((resolve, reject) => {
             logger.trace('[devtunnel]', 'login', this._devtunnelPath + ` user login ` + platformParams);
-            // 登陆
-            exec(this._devtunnelPath + ` user login ` + platformParams, async (error, stdout, stderr) => {
-                logger.trace('[devtunnel]', 'login', 'stdout', stdout);
-                if (error) {
-                    reject(error);
-                }
-                if (stdout.includes("Logged in")) {
+
+            let i = spawn(this._devtunnelPath, ['user', 'login', platformParams], {
+
+            })
+            i.stdout.on('data', async (stdout) => {
+                logger.trace('[devtunnel]', 'login', 'stdout', stdout.toString());
+                callbackCode && callbackCode(stdout.toString());
+
+                if (stdout.toString().includes("Logged in")) {
                     logger.info('[devtunnel]', 'login', '登陆成功')
                     // 重新获取登陆信息
                     resolve(await that.getToken());
-                } else {
-                    logger.error('[devtunnel]', 'login', '登陆失败')
-                    reject(new Error('登陆失败'));
                 }
             })
+            i.stderr.on('data', async (stdout) => {
+                logger.trace('[devtunnel]', 'login', 'stderr', stdout.toString());
+                callbackCode && callbackCode(stdout.toString());
+
+                if (stdout.toString().includes("Logged in")) {
+                    logger.info('[devtunnel]', 'login', '登陆成功')
+                    // 重新获取登陆信息
+                    resolve(await that.getToken());
+                }
+            })
+
+            i.on('error', (code) => {
+                logger.error('[devtunnel]', 'login', '登陆失败')
+                reject(new Error('登陆失败'));
+            });
+
         })
     }
 

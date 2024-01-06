@@ -25,12 +25,17 @@ export default defineComponent({
     }
   },
   mounted() {
-    this.config = {
-      ...this.config,
-      ...JSON.parse(utools.dbStorage.getItem('config') || '{}')
-    };
+    if (window['utools']){
+      this.config = {
+        ...this.config,
+        ...JSON.parse(utools.dbStorage.getItem('config') || '{}')
+      };
+    }
     window.mutils.setLoggerListener((level, params) => {
-      if (level.toLowerCase() === 'trace' && this.config.logLevel === 'info') return;
+      if (level.toLowerCase() === 'trace' && this.config.logLevel !== 'trace'){
+        console.log('ignore trace log');
+        return;
+      }
       this.logList.push(params)
     })
   }
