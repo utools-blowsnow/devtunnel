@@ -4,7 +4,10 @@ import ElementUI from 'element-ui';
 import 'element-ui/lib/theme-chalk/index.css';
 
 import './assets/main.css'
+import { createPinia, PiniaVuePlugin } from 'pinia'
 
+Vue.use(PiniaVuePlugin)
+const pinia = createPinia()
 Vue.use(ElementUI);
 
 console.log(window.mutils);
@@ -20,5 +23,6 @@ Vue.prototype.$calcUnit = function (size: number) {
 
 
 new Vue({
-    render: (h) => h(App)
+    render: (h) => h(App),
+    pinia,
 }).$mount('#app')

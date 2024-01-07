@@ -25,6 +25,7 @@
     "element-ui": "^2.15.14",
     "mutexify": "^1.4.0",
     "node-rsa": "^1.1.1",
+    "pinia": "^2.1.7",
     "uuid": "^3.3.3",
     "vconsole": "^3.15.1",
     "vscode-jsonrpc": "^4.0.0",

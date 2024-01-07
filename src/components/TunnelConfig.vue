@@ -1,4 +1,6 @@
 <script lang="ts">
+import { useConfigStore } from '../stores/config'
+
 export default {
   name: "TunnelConfig",
   data() {
@@ -8,25 +10,25 @@ export default {
         clusterId: 'asse',
         devtunnelPath: null,
         logLevel: 'info',
-      }
+      },
+
+      config: useConfigStore(),
     }
   },
   async mounted() {
-    this.form.devtunnelPath = await window.mutils.getDevtunnelPath();
     // this.clusters = await this.$tunnelHelp.getClusters();
-    if ( utools.dbStorage.getItem('config')) {
-      this.form = {
-        ...this.form,
-        ...JSON.parse(utools.dbStorage.getItem('config'))
-      };
-
-      this.$tunnelHelp.setDevTunnelPath(this.form.devtunnelPath);
+    this.form = {
+      ...this.form,
+      ...this.config.$state
+    };
+    if (!this.form.devtunnelPath) {
+      this.form.devtunnelPath = await window.mutils.getDevtunnelPath();
     }
+    this.$tunnelHelp.setDevTunnelPath(this.form.devtunnelPath);
   },
   methods: {
     onSubmit() {
-      console.log('submit!');
-      utools.dbStorage.setItem('config', JSON.stringify(this.form));
+      this.config.setConfig(this.form);
 
       this.$tunnelHelp.setDevTunnelPath(this.form.devtunnelPath);
 

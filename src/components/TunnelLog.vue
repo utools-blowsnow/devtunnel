@@ -1,5 +1,6 @@
 <script lang="ts">
 import {defineComponent} from 'vue'
+import { useConfigStore } from '../stores/config'
 
 export default defineComponent({
   name: "TunnelLog",
@@ -7,9 +8,7 @@ export default defineComponent({
     return {
       logList: [],
 
-      config: {
-        logLevel: 'info',
-      },
+      config: useConfigStore(),
     }
   },
   computed: {
@@ -25,12 +24,6 @@ export default defineComponent({
     }
   },
   mounted() {
-    if (window['utools']){
-      this.config = {
-        ...this.config,
-        ...JSON.parse(utools.dbStorage.getItem('config') || '{}')
-      };
-    }
     window.mutils.setLoggerListener((level, params) => {
       if (level.toLowerCase() === 'trace' && this.config.logLevel !== 'trace'){
         console.log('ignore trace log');

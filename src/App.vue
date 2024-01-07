@@ -4,6 +4,7 @@ import TunnelTable from "./components/TunnelTable.vue";
 import TunnelConfig from "./components/TunnelConfig.vue";
 import TunnelLog from "./components/TunnelLog.vue";
 import Vue from 'vue'
+import { useConfigStore } from './stores/config'
 let vConsole = new VConsole();
 vConsole.hideSwitch()
 
@@ -38,6 +39,8 @@ export default {
       LoginPlatformEnum,
 
       isInitTunnelHelp: false,
+
+      config: useConfigStore(),
     }
   },
   watch: {},
@@ -58,10 +61,7 @@ export default {
         background: 'rgba(0, 0, 0, 0.7)'
       });
     }).then(async (devtunnelHelp) => {
-      if ( utools.dbStorage.getItem('config')) {
-        let config = JSON.parse(utools.dbStorage.getItem('config'));
-        if (config.devtunnelPath) devtunnelHelp.setDevTunnelPath(config.devtunnelPath);
-      }
+      if (this.config.devtunnelPath) devtunnelHelp.setDevTunnelPath(this.config.devtunnelPath);
       try {
         await devtunnelHelp.initToken();
       }catch (e){}
@@ -162,18 +162,21 @@ export default {
 #app {
   margin: 0;
   padding: 0;
-  margin-bottom: 60px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
 
 .container {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  flex: 1;
 }
 
 .footer {
-  position: fixed;
-  bottom: 0;
+  //position: fixed;
+  //bottom: 0;
   background: #f7f7f7;
   width: 100%;
   padding: 10px 20px;
@@ -189,18 +192,5 @@ export default {
 
 
 <style>
-.demo-table-expand {
-  font-size: 0;
-  margin: 0 40px;
-}
 
-.demo-table-expand .el-form-item__label {
-  color: #99a9bf;
-}
-
-.demo-table-expand .el-form-item {
-  margin-right: 0 !important;
-  margin-bottom: 0 !important;
-  width: 50%;
-}
 </style>
