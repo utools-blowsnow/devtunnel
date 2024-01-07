@@ -102,7 +102,10 @@ export default {
 </script>
 
 <template>
-  <div class="tunnel-table">
+  <div class="tunnel-table" v-loading="loading"
+       element-loading-text="正在加载通道中..."
+       element-loading-spinner="el-icon-loading"
+       element-loading-background="rgba(0, 0, 0, 0.7)">
     <div class="tunnel-view-header">
       <div>
         <el-button icon="el-icon-refresh" @click="refreshTunnel" size="small">刷新</el-button>
@@ -117,12 +120,7 @@ export default {
       </div>
     </div>
 
-    <div class="tunnel-view"
-         v-loading="loading"
-         element-loading-text="正在加载通道中..."
-         element-loading-spinner="el-icon-loading"
-         element-loading-background="rgba(0, 0, 0, 0.7)"
-    >
+    <div class="tunnel-view">
       <el-row v-if="showType === 'card'" :gutter="20" style="margin: 0">
         <el-col v-for="tunnel in tunnels" :span="12" :md="6" :xs="12" class="tunnel-server-item">
           <el-card class="tunnel-server-item-card">
