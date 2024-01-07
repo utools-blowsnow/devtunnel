@@ -175,8 +175,6 @@ export default {
 }
 
 .footer {
-  //position: fixed;
-  //bottom: 0;
   background: #f7f7f7;
   width: 100%;
   padding: 10px 20px;

@@ -124,7 +124,7 @@ export default {
          element-loading-background="rgba(0, 0, 0, 0.7)"
     >
       <el-row v-if="showType === 'card'" :gutter="20" style="margin: 0">
-        <el-col v-for="tunnel in tunnels" :span="12" class="tunnel-server-item">
+        <el-col v-for="tunnel in tunnels" :span="12" :md="6" :xs="12" class="tunnel-server-item">
           <el-card class="tunnel-server-item-card">
             <div slot="header" class="clearfix">
               <span>{{ tunnel.description || '未命名' }}</span>
