@@ -12,8 +12,9 @@ export interface Mutils {
 
     getDevtunnelPath: (callback?) => Promise<string>;
 
+    checkDevtunnelPath(filePath): Promise<boolean>;
 
-    getDevtunnelHelp: (callback?) => Promise<DevtunnelHelp>;
+    getDevtunnelHelp: (devtunnelPath, callback?) => Promise<DevtunnelHelp>;
 
     setLoggerListener(listener: Function): void;
 }

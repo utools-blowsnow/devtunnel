@@ -80,14 +80,19 @@ window.mutils = {
         return Promise.resolve(binPath + "\\" + "devtunnel.exe");
     },
 
-    async getDevtunnelHelp(callback=null): Promise<DevtunnelHelp> {
+    async checkDevtunnelPath(filePath): Promise<boolean> {
+        return fs.existsSync(filePath);
+    },
+
+    async getDevtunnelHelp(devtunnelPath= null, downloadCallback=null): Promise<DevtunnelHelp> {
         if (devtunnelHelpInstance) {
             return devtunnelHelpInstance;
         }
-        return this.getDevtunnelPath(callback).then((devtunnelPath) => {
-            devtunnelHelpInstance = new DevtunnelHelp(devtunnelPath);
-            return devtunnelHelpInstance;
-        })
+        if (!devtunnelPath){
+            devtunnelPath = await this.getDevtunnelPath(downloadCallback);
+        }
+        devtunnelHelpInstance = new DevtunnelHelp(devtunnelPath);
+        return devtunnelHelpInstance;
     },
 
 

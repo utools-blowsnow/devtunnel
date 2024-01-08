@@ -24,10 +24,14 @@ export default {
     if (!this.form.devtunnelPath) {
       this.form.devtunnelPath = await window.mutils.getDevtunnelPath();
     }
-    this.$tunnelHelp.setDevTunnelPath(this.form.devtunnelPath);
   },
   methods: {
     onSubmit() {
+      if (window.mutils.checkDevtunnelPath(this.form.devtunnelPath)){
+        this.$message.error('devtunnel路径不存在');
+        return;
+      }
+
       this.config.setConfig(this.form);
 
       this.$tunnelHelp.setDevTunnelPath(this.form.devtunnelPath);

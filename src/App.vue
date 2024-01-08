@@ -52,7 +52,11 @@ export default {
       background: 'rgba(0, 0, 0, 0.7)'
     });
     console.log('window.mutils', window.mutils);
-    window.mutils.getDevtunnelHelp((msg) => {
+    let devtunnelPath = null;
+    if (this.config.devtunnelPath && window.mutils.checkDevtunnelPath(this.config.devtunnelPath)){
+      devtunnelPath = this.config.devtunnelPath;
+    }
+    window.mutils.getDevtunnelHelp(devtunnelPath,(msg) => {
       loadder.close()
       loadder = this.$loading({
         lock: true,
@@ -61,7 +65,6 @@ export default {
         background: 'rgba(0, 0, 0, 0.7)'
       });
     }).then(async (devtunnelHelp) => {
-      if (this.config.devtunnelPath) devtunnelHelp.setDevTunnelPath(this.config.devtunnelPath);
       try {
         await devtunnelHelp.initToken();
       }catch (e){}
