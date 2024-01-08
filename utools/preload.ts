@@ -81,6 +81,7 @@ window.mutils = {
     },
 
     async checkDevtunnelPath(filePath): Promise<boolean> {
+        console.log("checkDevtunnelPath", fs.existsSync(filePath));
         return fs.existsSync(filePath);
     },
 
@@ -88,8 +89,14 @@ window.mutils = {
         if (devtunnelHelpInstance) {
             return devtunnelHelpInstance;
         }
+        if (devtunnelPath && !await this.checkDevtunnelPath(devtunnelPath)){
+            devtunnelPath = null;
+        }
         if (!devtunnelPath){
             devtunnelPath = await this.getDevtunnelPath(downloadCallback);
+            logger.info("[devtunnel]", "自动获取devtunnel.exe路径", devtunnelPath);
+        }else{
+            logger.info("[devtunnel]", "从配置中读取devtunnel.exe路径" , devtunnelPath);
         }
         devtunnelHelpInstance = new DevtunnelHelp(devtunnelPath);
         return devtunnelHelpInstance;

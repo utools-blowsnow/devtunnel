@@ -52,10 +52,7 @@ export default {
       background: 'rgba(0, 0, 0, 0.7)'
     });
     console.log('window.mutils', window.mutils);
-    let devtunnelPath = null;
-    if (this.config.devtunnelPath && window.mutils.checkDevtunnelPath(this.config.devtunnelPath)){
-      devtunnelPath = this.config.devtunnelPath;
-    }
+    let devtunnelPath = this.config.devtunnelPath;
     window.mutils.getDevtunnelHelp(devtunnelPath,(msg) => {
       loadder.close()
       loadder = this.$loading({
