@@ -12,6 +12,7 @@ window['versions'] = {
 
 async function downloadByGithub(githubPath, filePath, options = {}) {
     return await Promise.race([
+        axios.get("https://mirror.ghproxy.com/https://github.com/" + githubPath + "/blob/master/" + filePath, options),
         axios.get("https://ghps.cc/https://github.com/" + githubPath + "/blob/master/" + filePath, options),
         axios.get("https://hub.gitmirror.com/https://github.com/" + githubPath + "/blob/master/" + filePath, options)
     ]);
