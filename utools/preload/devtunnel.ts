@@ -2,8 +2,7 @@ const {TunnelManagementHttpClient, ManagementApiVersions} = require('@microsoft/
 const {Tunnel, TunnelAccessControlEntryType, TunnelAccessScopes, TunnelPort, TunnelProtocol} = require('@microsoft/dev-tunnels-contracts');
 const {exec, spawn} = require('child_process');
 const userAgent = 'test-connection/1.0';
-const {TunnelRelayTunnelHost} = require('./devtunnel/connections/tunnelRelayTunnelHost');
-
+import {TunnelRelayTunnelHost} from './devtunnel/connections/tunnelRelayTunnelHost';
 import logger from './logger'
 
 

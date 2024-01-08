@@ -9,7 +9,6 @@ import {fileURLToPath, URL} from 'node:url'
 import legacy from '@vitejs/plugin-legacy'
 import vue2 from '@vitejs/plugin-vue2'
 
-
 // https://vitejs.dev/config/
 export default defineConfig(({command, mode}) => {
     rmSync('dist-electron', {recursive: true, force: true})
@@ -22,10 +21,10 @@ export default defineConfig(({command, mode}) => {
         base: './',
         plugins: [
             vue2(),
-            legacy({
-                targets: ['ie >= 11'],
-                additionalLegacyPolyfills: ['regenerator-runtime/runtime']
-            }),
+            // legacy({
+            //     targets: ['ie >= 11'],
+            //     additionalLegacyPolyfills: ['regenerator-runtime/runtime']
+            // }),
             utools({
                 entry: [
                     {
@@ -34,6 +33,9 @@ export default defineConfig(({command, mode}) => {
                 ],
                 hmr: {
                     pluginJsonPath: './plugin.json'
+                },
+                upx: {
+                    pluginJsonPath: './plugin.json',
                 }
             }),
             isStartElectron && electron([
@@ -67,35 +69,28 @@ export default defineConfig(({command, mode}) => {
                         ],
                     },
                 },
-                // {
-                //     entry: 'utools/preload.ts',
-                //     onstart({reload}) {
-                //         // Notify the Renderer process to reload the page when the Preload scripts build is complete,
-                //         // instead of restarting the entire Electron App.
-                //         reload()
-                //     },
-                //     vite: {
-                //         build: {
-                //             sourcemap: sourcemap ? 'inline' : undefined, // #332
-                //             minify: isBuild,
-                //             outDir: 'dist-electron/preload',
-                //             rollupOptions: {
-                //                 external: Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
-                //             },
-                //         },
-                //         plugins: [
-                //             isServe && notBundle(),
-                //         ],
-                //     },
-                // }
-            ]),
-            {
-                name: 'copy',
-                apply: 'build',
-                transform(code, id , options) {
-
+                {
+                    entry: 'utools/preload.ts',
+                    onstart({reload}) {
+                        // Notify the Renderer process to reload the page when the Preload scripts build is complete,
+                        // instead of restarting the entire Electron App.
+                        reload()
+                    },
+                    vite: {
+                        build: {
+                            sourcemap: sourcemap ? 'inline' : undefined, // #332
+                            minify: isBuild,
+                            outDir: 'dist-electron/preload',
+                            rollupOptions: {
+                                external: Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
+                            },
+                        },
+                        plugins: [
+                            isServe && notBundle(),
+                        ],
+                    },
                 }
-            }
+            ])
         ],
         server: {
             host: pkg.env.VITE_DEV_SERVER_HOST,
