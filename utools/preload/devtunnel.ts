@@ -1,15 +1,10 @@
-import {
-    Tunnel,
-    TunnelAccessControlEntryType,
-    TunnelAccessScopes, TunnelConnectionMode,
-    TunnelPort, TunnelProtocol
-} from "@microsoft/dev-tunnels-contracts";
-import {ManagementApiVersions, TunnelManagementHttpClient} from "@microsoft/dev-tunnels-management";
-import {TunnelRelayTunnelHost} from './devtunnel/connections/tunnelRelayTunnelHost';
-import logger from './logger'
-
+const {TunnelManagementHttpClient, ManagementApiVersions} = require('@microsoft/dev-tunnels-management');
+const {Tunnel, TunnelAccessControlEntryType, TunnelAccessScopes, TunnelPort, TunnelProtocol} = require('@microsoft/dev-tunnels-contracts');
 const {exec, spawn} = require('child_process');
 const userAgent = 'test-connection/1.0';
+const {TunnelRelayTunnelHost} = require('./devtunnel/connections/tunnelRelayTunnelHost');
+
+import logger from './logger'
 
 
 const CHINESE_CLUSTERS = {

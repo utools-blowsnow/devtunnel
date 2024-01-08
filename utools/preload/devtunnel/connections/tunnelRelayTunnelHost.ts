@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {
+import http from "http";
+
+const {
     TunnelConnectionMode,
     TunnelProtocol,
     TunnelRelayTunnelEndpoint,
@@ -9,9 +11,9 @@ import {
     Tunnel,
     TunnelAccessScopes,
     TunnelProgress,
-} from '@microsoft/dev-tunnels-contracts';
-import {TunnelManagementClient} from '@microsoft/dev-tunnels-management';
-import {
+} = require('@microsoft/dev-tunnels-contracts');
+const {TunnelManagementClient} = require('@microsoft/dev-tunnels-management');
+const {
     SshChannelOpeningEventArgs,
     SshChannelOpenFailureReason,
     SshStream,
@@ -39,29 +41,28 @@ import {
     SecureStream,
     SshProtocolExtensionNames,
     SshConnectionError,
-} from '@microsoft/dev-tunnels-ssh';
-import {
+} = require('@microsoft/dev-tunnels-ssh');
+const {
     ForwardedPortConnectingEventArgs,
     PortForwardChannelOpenMessage,
     PortForwardingService,
     RemotePortForwarder,
-} from '@microsoft/dev-tunnels-ssh-tcp';
-import {CancellationToken} from 'vscode-jsonrpc';
-import {SshHelpers} from '@microsoft/dev-tunnels-connections/sshHelpers';
-import {MultiModeTunnelHost} from '@microsoft/dev-tunnels-connections/multiModeTunnelHost';
-import {SessionPortKey} from '@microsoft/dev-tunnels-connections/sessionPortKey';
-import {
+} = require('@microsoft/dev-tunnels-ssh-tcp');
+const {CancellationToken} = require('vscode-jsonrpc');
+const {SshHelpers} = require('@microsoft/dev-tunnels-connections/sshHelpers');
+const {MultiModeTunnelHost} = require('@microsoft/dev-tunnels-connections/multiModeTunnelHost');
+const {SessionPortKey} = require('@microsoft/dev-tunnels-connections/sessionPortKey');
+const {
     PortRelayConnectRequestMessage
-} from '@microsoft/dev-tunnels-connections/messages/portRelayConnectRequestMessage';
-import {
+} = require('@microsoft/dev-tunnels-connections/messages/portRelayConnectRequestMessage');
+const {
     PortRelayConnectResponseMessage
-} from '@microsoft/dev-tunnels-connections/messages/portRelayConnectResponseMessage';
-import {v4 as uuidv4} from 'uuid';
+} = require('@microsoft/dev-tunnels-connections/messages/portRelayConnectResponseMessage');
+const uuidv4 = require('uuid').v4;
 
-import {TunnelHost} from '@microsoft/dev-tunnels-connections/tunnelHost';
-import {isNode} from '@microsoft/dev-tunnels-connections/sshHelpers';
-import {TunnelConnectionOptions} from '@microsoft/dev-tunnels-connections/tunnelConnectionOptions';
-import {TunnelConnectionSession} from '@microsoft/dev-tunnels-connections/tunnelConnectionSession';
+const {TunnelHost} = require('@microsoft/dev-tunnels-connections/tunnelHost');
+const {isNode} = require('@microsoft/dev-tunnels-connections/sshHelpers');
+const {TunnelConnectionSession} = require('@microsoft/dev-tunnels-connections/tunnelConnectionSession');
 
 const webSocketSubProtocol = 'tunnel-relay-host';
 const webSocketSubProtocolv2 = 'tunnel-relay-host-v2-dev';
@@ -74,11 +75,264 @@ const connectionProtocols =
         protocolVersion === '2' ? [webSocketSubProtocolv2] :
             [webSocketSubProtocolv2, webSocketSubProtocol];
 
+declare class TunnelConnectionBase  {
+    /**
+     * Gets tunnel access scope for this tunnel session.
+     */
+    readonly tunnelAccessScope: string;
+    private readonly disposeCts;
+    private status;
+    private error?;
+    private readonly refreshingTunnelAccessTokenEmitter;
+    private readonly connectionStatusChangedEmitter;
+    private readonly retryingTunnelConnectionEmitter;
+    private readonly forwardedPortConnectingEmitter;
+    protected constructor(
+        /**
+         * Gets tunnel access scope for this tunnel session.
+         */
+        tunnelAccessScope: string);
+    /**
+     * Gets a value indicathing that this tunnel connection session is disposed.
+     */
+    get isDisposed(): boolean;
+    protected get isRefreshingTunnelAccessTokenEventHandled(): boolean;
+    /**
+     * Gets dispose cancellation token.
+     */
+    protected get disposeToken(): any;
+    /**
+     * Gets the connection status.
+     */
+    protected get connectionStatus(): any;
+    /**
+     * Sets the connection status.
+     * Throws CancellationError if the session is disposed and the status being set is not ConnectionStatus.Disconnected.
+     */
+    protected set connectionStatus(value: any);
+    /**
+     * Gets the error that caused disconnection.
+     * Undefined if not yet connected or disconnection was caused by disposing of this object.
+     */
+    protected get disconnectError(): Error | undefined;
+    /**
+     * Sets the error that caused disconnection.
+     */
+    protected set disconnectError(e: Error | undefined);
+    /**
+     * Event for refreshing the tunnel access token.
+     * The tunnel client will fire this event when it is not able to use the access token it got from the tunnel.
+     */
+    readonly refreshingTunnelAccessToken: any;
+    /**
+     * Connection status changed event.
+     */
+    readonly connectionStatusChanged: any;
+    /**
+     * Event raised when a tunnel connection attempt failed and is about to be retried.
+     *  An event handler can cancel the retry by setting {@link RetryingTunnelConnectionEventArgs.retry} to false.
+     */
+    readonly retryingTunnelConnection: any;
+    /**
+     * An event which fires when a connection is made to the forwarded port.
+     */
+    readonly forwardedPortConnecting: any;
+    protected onForwardedPortConnecting(e: any): void;
+    /**
+     * Closes and disposes the tunnel session.
+     */
+    dispose(): Promise<void>;
+    /**
+     *  Notifies about a connection retry, giving the relay client a chance to delay or cancel it.
+     */
+    onRetrying(event: any): void;
+    /**
+     * Gets the fresh tunnel access token or undefined if it cannot.
+     */
+    protected getFreshTunnelAccessToken(cancellation: any): Promise<string | null | undefined>;
+    /**
+     * Event fired when the connection status has changed.
+     */
+    protected onConnectionStatusChanged(previousStatus: any, status: any): void;
+    /**
+     * Throws CancellationError if the tunnel connection is disposed.
+     */
+    protected throwIfDisposed(): void;
+}
+declare class TunnelConnectionSession extends TunnelConnectionBase  {
+    protected readonly connectionProtocols: string[];
+    /**
+     * Gets the management client used for the connection.
+     */
+    protected readonly managementClient?: any | undefined;
+    private connectionOptions?;
+    private connectedTunnel;
+    private connector?;
+    private reconnectPromise?;
+    private connectionProtocolValue?;
+    private disconnectionReason?;
+    private readonly refreshingTunnelEmitter;
+    private readonly reportProgressEmitter;
+    /**
+     * Event that is raised to report connection progress.
+     *
+     * See `Progress` for a description of the different progress events that can be reported.
+     */
+    readonly onReportProgress: Event;
+    httpAgent?: http.Agent;
+    /**
+     * Gets or sets a factory for creating relay streams.
+     */
+    streamFactory: any;
+    /**
+     * Name of the protocol used to connect to the tunnel.
+     */
+    protected get connectionProtocol(): string | undefined;
+    protected set connectionProtocol(value: string | undefined);
+
+    protected raiseReportProgress(progress: any, sessionNumber?: number): void;
+    /**
+     * A value indicating if this is a client tunnel connection (as opposed to host connection).
+     */
+    protected get isClientConnection(): boolean;
+    /**
+     * tunnel connection role, either "client", or "host", depending on @link tunnelAccessScope.
+     */
+    protected get connectionRole(): string;
+    /**
+     * Tunnel access token.
+     */
+    protected accessToken?: string;
+    protected sshSessionDisposables: any[];
+    constructor(tunnelAccessScope: string, connectionProtocols: string[], trace?: any,
+                /**
+                 * Gets the management client used for the connection.
+                 */
+                managementClient?: any | undefined);
+    /**
+     * Gets the trace source.
+     */
+    trace: any;
+    /**
+     * Get the tunnel of this tunnel connection.
+     */
+    protected tunnel;
+    protected relayUri;
+    /**
+     * An event which fires when tunnel connection refreshes tunnel.
+     */
+    readonly refreshingTunnel: Event;
+    /**
+     * Tunnel has been assigned to or changed.
+     */
+    protected tunnelChanged(): void;
+    /**
+     * Determines whether E2E encryption is requested when opening connections through the tunnel
+     * (V2 protocol only).
+     *
+     * The default value is true, but applications may set this to false (for slightly faster
+     * connections).
+     *
+     * Note when this is true, E2E encryption is not strictly required. The tunnel relay and
+     * tunnel host can decide whether or not to enable E2E encryption for each connection,
+     * depending on policies and capabilities. Applications can verify the status of E2EE by
+     * handling the `forwardedPortConnecting` event and checking the related property on the
+     * channel request or response message.
+     */
+    enableE2EEncryption: boolean;
+    /**
+     * Gets a value indicating that this connection has already created its connector
+     * and so can be reconnected if needed.
+     */
+    protected get isReconnectable(): boolean;
+    /**
+     * Gets the disconnection reason.
+     * {@link SshDisconnectReason.none } if not yet disconnected.
+     * {@link SshDisconnectReason.connectionLost} if network connection was lost and reconnects are not enabled or unsuccesfull.
+     * {@link SshDisconnectReason.byApplication} if connection was disposed.
+     * {@link SshDisconnectReason.tooManyConnections} if host connection was disconnected because another host connected for the same tunnel.
+     */
+    protected get disconnectReason(): any | undefined;
+    /**
+     * Sets the disconnect reason that caused disconnection.
+     */
+    protected set disconnectReason(reason: any | undefined);
+    /**
+     * Disposes this tunnel session, closing the SSH session used for it.
+     */
+    dispose(): Promise<void>;
+    /**
+     * Get a value indicating whether this session can attempt refreshing tunnel.
+     * Note: tunnel refresh may still fail if the tunnel doesn't exist in the service,
+     * tunnel access has changed, or tunnel access token has expired.
+     */
+    protected get canRefreshTunnel(): boolean | any;
+    /**
+     * Fetch the tunnel from the service if {@link managementClient} and {@link tunnel} are set.
+     */
+    protected refreshTunnel(includePorts?: boolean, cancellation?: any): Promise<boolean>;
+    /**
+     * Creates a tunnel connector
+     */
+    protected createTunnelConnector(): any;
+    /**
+     * Trace info message.
+     */
+    protected traceInfo(msg: string): void;
+    /**
+     * Trace verbose message.
+     */
+    protected traceVerbose(msg: string): void;
+    /**
+     * Trace warning message.
+     */
+    protected traceWarning(msg: string, err?: Error): void;
+    /**
+     * Trace error message.
+     */
+    protected traceError(msg: string, err?: Error): void;
+    /**
+     * SSH session closed event handler. Child classes may use it unsubscribe session events and maybe start reconnecting.
+     */
+    protected onSshSessionClosed(e: any): void;
+    /**
+     * Start reconnecting if the tunnel connection is not yet disposed.
+     */
+    protected maybeStartReconnecting(reason?: any, message?: string, error?: Error | null): void;
+    /**
+     * Get a user-readable reason for SSH session disconnection, or an empty string.
+     */
+    protected getDisconnectReason(reason?: any, message?: string, error?: Error | null): string;
+    /**
+     * Connect to the tunnel session by running the provided {@link action}.
+     */
+    connectSession(action: () => Promise<void>): Promise<void>;
+    /**
+     * Connect to the tunnel session with the tunnel connector.
+     * @param tunnel Tunnel to use for the connection.
+     *     Undefined if the connection information is already known and the tunnel is not needed.
+     *     Tunnel object to get the connection information from that tunnel.
+     */
+    connectTunnelSession(tunnel?: any, options?: any, cancellation?: any): Promise<void>;
+    /**
+     * Validate the {@link tunnel} and get data needed to connect to it, if the tunnel is provided;
+     * otherwise, ensure that there is already sufficient data to connect to a tunnel.
+     */
+    onConnectingToTunnel(): Promise<void>;
+    /**
+     * Validates tunnel access token if it's present. Returns the token.
+     */
+    validateAccessToken(): string | undefined;
+    /**
+     * Unsubscribe SSH session events in @link TunnelSshConnectionSession.sshSessionDisposables
+     */
+    protected unsubscribeSessionEvents(): void;
+}
 /**
  * Tunnel host implementation that uses data-plane relay
  *  to accept client connections.
  */
-export class TunnelRelayTunnelHost extends TunnelConnectionSession implements TunnelHost {
+export class TunnelRelayTunnelHost extends TunnelConnectionSession {
     public static readonly webSocketSubProtocol = webSocketSubProtocol;
     public static readonly webSocketSubProtocolv2 = webSocketSubProtocolv2;
 
@@ -90,23 +344,23 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
     private readonly id: string;
     private readonly hostId: string;
     private readonly clientSessionPromises: Promise<void>[] = [];
-    private readonly reconnectableSessions: SshServerSession[] = [];
+    private readonly reconnectableSessions: any[] = [];
 
     /**
      * Sessions created between this host and clients
      * @internal
      */
-    public readonly sshSessions: SshServerSession[] = [];
-
+    public readonly sshSessions: any[] = [];
+    protected sshSession;
     /**
      * Port Forwarders between host and clients
      */
-    public readonly remoteForwarders = new Map<string, RemotePortForwarder>();
+    public readonly remoteForwarders = new Map<string, any>();
 
     /**
      * Private key used for connections.
      */
-    public hostPrivateKey?: KeyPair;
+    public hostPrivateKey?: any;
 
     /**
      * Public keys used for connections.
@@ -116,7 +370,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
     /**
      * Promise task to get private key used for connections.
      */
-    public hostPrivateKeyPromise?: Promise<KeyPair>;
+    public hostPrivateKeyPromise?: Promise<any>;
 
     private loopbackIp = '127.0.0.1';
 
@@ -128,7 +382,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
      */
     private endpointSignature?: string;
 
-    public constructor(managementClient: TunnelManagementClient, trace?: Trace) {
+    public constructor(managementClient: any, trace?: any) {
         super(TunnelAccessScopes.Host, connectionProtocols, trace, managementClient);
         const publicKey = SshAlgorithms.publicKey.ecdsaSha2Nistp384!;
         if (publicKey) {
@@ -165,7 +419,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
      * to local ports as defined on the tunnel.
      * @deprecated Use `connect()` instead.
      */
-    public async start(tunnel: Tunnel): Promise<void> {
+    public async start(tunnel: any): Promise<void> {
         await this.connect(tunnel);
     }
 
@@ -174,9 +428,9 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
      * to local ports as defined on the tunnel.
      */
     public async connect(
-        tunnel: Tunnel,
-        options?: TunnelConnectionOptions,
-        cancellation?: CancellationToken,
+        tunnel: any,
+        options?: any,
+        cancellation?: any,
     ): Promise<void> {
         await this.connectTunnelSession(tunnel, options, cancellation);
     }
@@ -188,9 +442,9 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
      *     Tunnel object to get the connection information from that tunnel.
      */
     public async connectTunnelSession(
-        tunnel?: Tunnel,
-        options?: TunnelConnectionOptions,
-        cancellation?: CancellationToken
+        tunnel?: any,
+        options?: any,
+        cancellation?: any
     ): Promise<void> {
         if (this.disconnectReason === SshDisconnectReason.tooManyConnections) {
             // If another host for the same tunnel connects, the first connection is disconnected
@@ -211,13 +465,13 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
      * @internal
      */
     public async configureSession(
-        stream: Stream,
+        stream: any,
         protocol: string,
         isReconnect: boolean,
-        cancellation: CancellationToken,
+        cancellation: any,
     ): Promise<void> {
         this.connectionProtocol = protocol;
-        let session: SshClientSession;
+        let session: any;
         if (this.connectionProtocol === webSocketSubProtocol) {
             // The V1 protocol always configures no security, equivalent to SSH MultiChannelStream.
             // The websocket transport is still encrypted and authenticated.
@@ -295,7 +549,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
                 throw new Error('Tunnel is required');
             }
 
-            let endpoint: TunnelRelayTunnelEndpoint = {
+            let endpoint: any = {
                 id: this.id,
                 hostId: this.hostId,
                 hostPublicKeys: this.hostPublicKeys,
@@ -349,7 +603,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
         await Promise.all(promises);
     }
 
-    private hostSession_ChannelOpening(e: SshChannelOpeningEventArgs) {
+    private hostSession_ChannelOpening(e: any) {
         if (!e.isRemoteRequest) {
             // Auto approve all local requests (not that there are any for the time being).
             return;
@@ -403,7 +657,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
         });
     }
 
-    protected onForwardedPortConnecting(e: ForwardedPortConnectingEventArgs): void {
+    protected onForwardedPortConnecting(e: any): void {
         const channel = e.stream.channel;
         const relayRequestMessage = channel.openMessage.convertTo(
             new PortRelayConnectRequestMessage());
@@ -415,7 +669,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
             // size of one client channel.
             channel.maxWindowSize = SshChannel.defaultMaxWindowSize * 2;
 
-            const serverCredentials: SshServerCredentials = {
+            const serverCredentials: any = {
                 publicKeys: [this.hostPrivateKey!]
             };
             const secureStream = new SecureStream(
@@ -440,8 +694,8 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
     }
 
     private async acceptClientSession(
-        clientSessionChannel: SshChannel,
-        cancellation: CancellationToken,
+        clientSessionChannel: any,
+        cancellation: any,
     ): Promise<void> {
         try {
             const stream = new SshStream(clientSessionChannel);
@@ -458,8 +712,8 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
      * and waits for it to close.
      */
     private async connectAndRunClientSession(
-        stream: SshStream,
-        cancellation: CancellationToken,
+        stream: any,
+        cancellation: any,
     ): Promise<void> {
         if (cancellation.isCancellationRequested) {
             stream.destroy();
@@ -518,7 +772,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
         }
     }
 
-    private onSshClientAuthenticating(e: SshAuthenticatingEventArgs) {
+    private onSshClientAuthenticating(e: any) {
         if (e.authenticationType === SshAuthenticationType.clientNone) {
             // For now, the client is allowed to skip SSH authentication;
             // they must have a valid tunnel access token already to get this far.
@@ -529,11 +783,11 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
         }
     }
 
-    private async onSshClientAuthenticated(session: SshServerSession) {
+    private async onSshClientAuthenticated(session: any) {
         void this.startForwardingExistingPorts(session);
     }
 
-    private async startForwardingExistingPorts(session: SshSession): Promise<void> {
+    private async startForwardingExistingPorts(session: any): Promise<void> {
         const pfs = session.activateService(PortForwardingService);
         pfs.forwardConnectionsToLocalPorts = this.forwardConnectionsToLocalPorts;
 
@@ -558,7 +812,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
         }
     }
 
-    private onSshSessionRequest(e: SshRequestEventArgs<SessionRequestMessage>, session: any) {
+    private onSshSessionRequest(e: any, session: any) {
         if (e.requestType === 'RefreshPorts') {
             e.responsePromise = (async () => {
                 await this.refreshPorts();
@@ -567,7 +821,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
         }
     }
 
-    private onSshChannelOpening(e: SshChannelOpeningEventArgs, session: any) {
+    private onSshChannelOpening(e: any, session: any) {
         if (!(e.request instanceof PortForwardChannelOpenMessage)) {
             // This is to let the Go SDK open an unused session channel
             if (e.request.channelType === SshChannel.sessionChannelType) {
@@ -581,7 +835,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
             e.failureReason = SshChannelOpenFailureReason.administrativelyProhibited;
             return;
         }
-        const portForwardRequest = e.request as PortForwardChannelOpenMessage;
+        const portForwardRequest = e.request as any;
         if (portForwardRequest.channelType === 'direct-tcpip') {
             if (!this.tunnel!.ports!.some((p) => p.portNumber === portForwardRequest.port)) {
                 this.trace(
@@ -612,9 +866,9 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
     }
 
     private session_Closed(
-        session: SshServerSession,
-        e: SshSessionClosedEventArgs,
-        cancellation: CancellationToken,
+        session: any,
+        e: any,
+        cancellation: any,
     ) {
         // Reconnecting client session may cause the new session to close with 'None' reason.
         if (e.reason === SshDisconnectReason.byApplication) {
@@ -640,7 +894,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
         }
     }
 
-    public async refreshPorts(cancellation?: CancellationToken): Promise<void> {
+    public async refreshPorts(cancellation?: any): Promise<void> {
         this.raiseReportProgress(TunnelProgress.StartingRefreshPorts);
         if (!await this.refreshTunnel(true, cancellation)) {
             return;
@@ -648,7 +902,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
 
         const ports = this.tunnel?.ports ?? [];
 
-        let sessions: SshSession[] = this.sshSessions;
+        let sessions: any[] = this.sshSessions;
         if (this.connectionProtocol === webSocketSubProtocolv2 && this.sshSession) {
             // In the V2 protocol, ports are forwarded directly on the host session.
             // (But even when the host is V2, some clients may still connect with V1.)
@@ -694,7 +948,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession implements Tu
         this.raiseReportProgress(TunnelProgress.CompletedRefreshPorts);
     }
 
-    protected async forwardPort(pfs: PortForwardingService, port: TunnelPort, remoteAddress = null, remotePort = null) {
+    protected async forwardPort(pfs: any, port: any, remoteAddress = null, remotePort = null) {
         const portNumber = Number(port.portNumber);
         if (pfs.localForwardedPorts.find((p) => p.localPort === portNumber)) {
             // The port is already forwarded. This may happen if we try to add the same port twice after reconnection.

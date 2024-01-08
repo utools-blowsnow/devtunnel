@@ -28,13 +28,12 @@ export default defineConfig(({command, mode}) => {
             }),
             utools({
                 entry: [
-                    {entry: 'utools/preload.ts'}
+                    {
+                        entry: 'utools/preload.ts',
+                    }
                 ],
                 hmr: {
                     pluginJsonPath: './plugin.json'
-                },
-                upx: {
-                    pluginJsonPath: './plugin.json',
                 }
             }),
             isStartElectron && electron([
@@ -68,32 +67,39 @@ export default defineConfig(({command, mode}) => {
                         ],
                     },
                 },
-                {
-                    entry: 'utools/preload.ts',
-                    onstart({reload}) {
-                        // Notify the Renderer process to reload the page when the Preload scripts build is complete,
-                        // instead of restarting the entire Electron App.
-                        reload()
-                    },
-                    vite: {
-                        build: {
-                            sourcemap: sourcemap ? 'inline' : undefined, // #332
-                            minify: isBuild,
-                            outDir: 'dist-electron/preload',
-                            rollupOptions: {
-                                external: Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
-                            },
-                        },
-                        plugins: [
-                            isServe && notBundle(),
-                        ],
-                    },
-                }
+                // {
+                //     entry: 'utools/preload.ts',
+                //     onstart({reload}) {
+                //         // Notify the Renderer process to reload the page when the Preload scripts build is complete,
+                //         // instead of restarting the entire Electron App.
+                //         reload()
+                //     },
+                //     vite: {
+                //         build: {
+                //             sourcemap: sourcemap ? 'inline' : undefined, // #332
+                //             minify: isBuild,
+                //             outDir: 'dist-electron/preload',
+                //             rollupOptions: {
+                //                 external: Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
+                //             },
+                //         },
+                //         plugins: [
+                //             isServe && notBundle(),
+                //         ],
+                //     },
+                // }
             ]),
+            {
+                name: 'copy',
+                apply: 'build',
+                transform(code, id , options) {
+
+                }
+            }
         ],
         server: {
             host: pkg.env.VITE_DEV_SERVER_HOST,
             port: pkg.env.VITE_DEV_SERVER_PORT,
-        },
+        }
     }
 })

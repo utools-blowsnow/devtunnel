@@ -59,6 +59,7 @@ export default {
         });
         tunnel.isStarted = true;
       }catch (e){
+        console.error(e)
         this.$message.error(e.message)
       }finally {
         loadder.close()

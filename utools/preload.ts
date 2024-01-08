@@ -1,7 +1,6 @@
-import axios from 'axios';
-import {DevtunnelHelp, DevtunnelNoLoginError, LoginPlatformEnum} from "./devtunnel";
-import logger from "./logger";
-
+import logger from "./preload/logger";
+import {DevtunnelHelp, DevtunnelNoLoginError, LoginPlatformEnum} from "./preload/devtunnel";
+const axios = require('axios');
 const os = require('os');
 const fs = require('fs');
 
@@ -85,7 +84,7 @@ window.mutils = {
         return fs.existsSync(filePath);
     },
 
-    async getDevtunnelHelp(devtunnelPath= null, downloadCallback=null): Promise<DevtunnelHelp> {
+    async getDevtunnelHelp(devtunnelPath= null, downloadCallback=null): Promise<any> {
         if (devtunnelHelpInstance) {
             return devtunnelHelpInstance;
         }
