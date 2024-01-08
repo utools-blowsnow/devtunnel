@@ -1,0 +1,17 @@
+{
+  "name": "preload",
+  "version": "1.0.0",
+  "dependencies": {
+    "@microsoft/dev-tunnels-connections": "^1.1.1",
+    "@microsoft/dev-tunnels-contracts": "^1.1.1",
+    "@microsoft/dev-tunnels-management": "^1.1.1",
+    "@microsoft/dev-tunnels-ssh": "^3.11.35",
+    "@microsoft/dev-tunnels-ssh-tcp": "^3.11.35",
+    "axios": "^1.6.2",
+    "buffer": "^5.2.1",
+    "compressing": "^1.10.0",
+    "vscode-jsonrpc": "^4.0.0",
+    "node-rsa": "^1.1.1",
+    "uuid": "^3.3.3"
+  }
+}
