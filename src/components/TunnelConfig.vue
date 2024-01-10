@@ -22,14 +22,14 @@ export default {
       ...this.config.$state
     };
     if (!this.form.devtunnelPath) {
-      this.form.devtunnelPath = this.$tunnelHelp.getDevtunnelPath();
+      this.form.devtunnelPath = this.$tunnelHelp.getDevTunnelPath();
     }
   },
   methods: {
-    onSubmit() {
-      if (window.mutils.checkDevtunnelPath(this.form.devtunnelPath)){
+    async onSubmit() {
+      if (!await window.mutils.checkDevtunnelPath(this.form.devtunnelPath)){
         this.$message.error('devtunnel路径不存在，已自动恢复');
-        this.form.devtunnelPath = this.$tunnelHelp.getDevtunnelPath();
+        this.form.devtunnelPath = this.$tunnelHelp.getDevTunnelPath();
         return;
       }
 

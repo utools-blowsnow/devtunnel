@@ -45,19 +45,20 @@ export class DevtunnelHelp {
         this._devtunnelPath = devtunnelPath;
     }
 
-    setDevTunnelPath(devtunnelPath) {
-        this._devtunnelPath = devtunnelPath;
-    }
 
-    getDevTunnelPath() {
+    public getDevTunnelPath() {
         return this._devtunnelPath;
     }
 
-    initToken() {
+    public setDevTunnelPath(devtunnelPath) {
+        this._devtunnelPath = devtunnelPath;
+    }
+
+    public initToken() {
         return this.getToken()
     }
 
-    private getTunnelManagementHttpClient(): TunnelManagementHttpClient {
+    private getTunnelManagementHttpClient(): any {
         let tunnelManagementClient = new TunnelManagementHttpClient(
             userAgent,
             ManagementApiVersions.Version20230927preview,
