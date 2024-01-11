@@ -10,31 +10,8 @@ window['versions'] = {
     electron: () => process.versions.electron
 }
 
-async function downloadByGithub(githubPath, filePath, options = {}) {
-    return await Promise.race([
-        axios.get("https://mirror.ghproxy.com/https://github.com/" + githubPath + "/blob/master/" + filePath, options),
-        axios.get("https://ghps.cc/https://github.com/" + githubPath + "/blob/master/" + filePath, options),
-        axios.get("https://hub.gitmirror.com/https://github.com/" + githubPath + "/blob/master/" + filePath, options)
-    ]);
-}
 
-async function downloadAndSaveFiles(prefixPath, files = {}, savePath) {
-    let promises = [];
-    for (const githubFilePath of Object.keys(files)) {
-        promises.push(downloadByGithub(prefixPath, githubFilePath, {
-            responseType: "arraybuffer"
-        }).then((response) => {
-            let data = response.data;
-            let buffer = Buffer.from(data);
-            console.log("downloaded", savePath + "/" + files[githubFilePath], buffer.length);
-            // 保存到本地
-            fs.writeFileSync(savePath + "/" + files[githubFilePath], buffer);
-        }))
-    }
-    return Promise.all(promises);
-}
 
-const baseGithubPath = "utools-blowsnow/devtunnel"
 let devtunnelHelpInstance = null;
 
 window.mutils = {
@@ -48,31 +25,12 @@ window.mutils = {
     },
 
     // 初始化bin数据
-    async getDevtunnelPath(callback=null) {
+    async getDevtunnelPath() {
         let binPath = this.binPath();
 
         let binList = fs.readdirSync(binPath);
         if (!binList.includes("devtunnel.exe")) {
-            callback && callback("未找到Devtunnel，自动下载 devtunnel.exe");
-
-            try {
-                await downloadAndSaveFiles(baseGithubPath, {
-                    "/other/devtunnel.exe": "devtunnel.exe"
-                }, binPath);
-            }catch (e) {
-                throw new Error("下载失败: 请自行下载devtunnel.exe，放到" + binPath + "目录下");
-            }
-
-            console.log("未找到Devtunnel，自动下载 devtunnel.exe");
-
-            binList = fs.readdirSync(binPath);
-
-            if (!binList.includes("devtunnel.exe")) {
-                callback && callback("下载失败: 请自行下载devtunnel.exe，放到" + binPath + "目录下");
-                throw new Error("下载失败: 请自行下载devtunnel.exe，放到" + binPath + "目录下");
-            }else{
-                callback && callback("下载成功 devtunnel.exe");
-            }
+            return Promise.reject(new Error("未找到Devtunnel"));
         }
 
         console.log("binList", binPath, binList);
@@ -80,24 +38,42 @@ window.mutils = {
         return Promise.resolve(binPath + "\\" + "devtunnel.exe");
     },
 
+    async donwloadDevtunnel(downloadUrl, downloadPath, progress=null) {
+        try {
+            await axios.get(downloadUrl,  {
+                responseType: "arraybuffer",
+                onDownloadProgress: (progressEvent) => {
+                    if (progress) {
+                        progress(progressEvent);
+                    }
+                }
+            }).then((response) => {
+                let data = response.data;
+                let buffer = Buffer.from(data);
+                console.log("downloaded", downloadPath, buffer.length);
+                // 保存到本地
+                fs.writeFileSync(downloadPath, buffer);
+            })
+        }catch (e) {
+            throw new Error("下载失败: 请自行下载devtunnel.exe，放到" + downloadPath + "目录下");
+        }
+
+        return Promise.resolve(downloadPath);
+    },
+
     async checkDevtunnelPath(filePath): Promise<boolean> {
         console.log("checkDevtunnelPath", fs.existsSync(filePath));
         return fs.existsSync(filePath);
     },
 
-    async getDevtunnelHelp(devtunnelPath= null, downloadCallback=null): Promise<any> {
+    async getDevtunnelHelp(devtunnelPath): Promise<any> {
         if (devtunnelHelpInstance) {
             return devtunnelHelpInstance;
         }
-        if (devtunnelPath && !await this.checkDevtunnelPath(devtunnelPath)){
-            devtunnelPath = null;
-        }
-        if (!devtunnelPath){
-            devtunnelPath = await this.getDevtunnelPath(downloadCallback);
-            logger.info("[devtunnel]", "自动获取devtunnel.exe路径", devtunnelPath);
-        }else{
-            logger.info("[devtunnel]", "从配置中读取devtunnel.exe路径" , devtunnelPath);
-        }
+        // if (devtunnelPath && !await this.checkDevtunnelPath(devtunnelPath)){
+        //     logger.info("[devtunnel]", "devtunnel未下载", devtunnelPath);
+        //     throw new Error("devtunnel.exe路径不存在");
+        // }
         devtunnelHelpInstance = new DevtunnelHelp(devtunnelPath);
         return devtunnelHelpInstance;
     },

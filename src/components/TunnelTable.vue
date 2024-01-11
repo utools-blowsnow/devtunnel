@@ -107,6 +107,7 @@ export default {
        element-loading-text="正在加载通道中..."
        element-loading-spinner="el-icon-loading"
        element-loading-background="rgba(0, 0, 0, 0.7)">
+
     <div class="tunnel-view-header">
       <div>
         <el-button icon="el-icon-refresh" @click="refreshTunnel" size="small">刷新</el-button>
@@ -264,7 +265,9 @@ export default {
           </template>
         </el-table-column>
       </el-table>
+      <el-empty v-if="tunnels.length === 0" description="无可用通道"></el-empty>
     </div>
+
 
     <save-tunnel-dialog ref="saveTunnelDialog" @update="onSaveTunnel"></save-tunnel-dialog>
   </div>

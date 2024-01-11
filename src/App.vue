@@ -5,6 +5,7 @@ import TunnelConfig from "./components/TunnelConfig.vue";
 import TunnelLog from "./components/TunnelLog.vue";
 import Vue from 'vue'
 import { useConfigStore } from './stores/config'
+import TunnelDownload from "./components/TunnelDownload.vue";
 let vConsole = new VConsole();
 vConsole.hideSwitch()
 
@@ -24,7 +25,7 @@ enum LoginPlatformEnum {
 }
 export default {
   name: 'App',
-  components: {TunnelLog, TunnelConfig, TunnelTable},
+  components: {TunnelDownload, TunnelLog, TunnelConfig, TunnelTable},
   data() {
     return {
       activeTab: 'first',
@@ -38,43 +39,51 @@ export default {
 
       LoginPlatformEnum,
 
+      isDownloadTunnel: false,
       isInitTunnelHelp: false,
 
       config: useConfigStore(),
     }
   },
   watch: {},
-  mounted() {
-    let loadder = this.$loading({
-      lock: true,
-      text: '正在初始化...',
-      spinner: 'el-icon-loading',
-      background: 'rgba(0, 0, 0, 0.7)'
-    });
+  async mounted() {
     console.log('window.mutils', window.mutils);
-    let devtunnelPath = this.config.devtunnelPath;
-    window.mutils.getDevtunnelHelp(devtunnelPath,(msg) => {
-      loadder.close()
-      loadder = this.$loading({
+    let devtunnelPath = ''; // this.config.devtunnelPath;
+    if (devtunnelPath && await window.mutils.checkDevtunnelPath(devtunnelPath)){
+      this.isDownloadTunnel = true
+      this.initDevtunnelHelp(devtunnelPath)
+    }
+  },
+  methods: {
+    downloadComplete(devtunnelPath) {
+      this.config.devtunnelPath = devtunnelPath
+      this.config.setConfig(this.config);
+      this.isDownloadTunnel = true
+
+      console.log('downloadComplete', this.config);
+      this.initDevtunnelHelp(devtunnelPath)
+    },
+    initDevtunnelHelp(devtunnelPath) {
+
+      let loadder = this.$loading({
         lock: true,
-        text: msg,
+        text: '正在初始化...',
         spinner: 'el-icon-loading',
         background: 'rgba(0, 0, 0, 0.7)'
       });
-    }).then(async (devtunnelHelp) => {
-      try {
-        await devtunnelHelp.initToken();
-      }catch (e){}
-      Vue.prototype.$tunnelHelp = devtunnelHelp;
-      this.isInitTunnelHelp = true
-      this.init();
-    }).catch(e => {
-      this.$message.error(e.message)
-    }).finally(() => {
-      loadder.close()
-    })
-  },
-  methods: {
+      window.mutils.getDevtunnelHelp(devtunnelPath).then(async (devtunnelHelp) => {
+        try {
+          await devtunnelHelp.initToken();
+        }catch (e){}
+        Vue.prototype.$tunnelHelp = devtunnelHelp;
+        this.isInitTunnelHelp = true
+        this.init();
+      }).catch(e => {
+        this.$message.error(e.message)
+      }).finally(() => {
+        loadder.close()
+      })
+    },
     async init() {
       let userlimits = await this.$tunnelHelp.userlimits();
       this.userLimit = userlimits
@@ -122,38 +131,43 @@ export default {
 
 <template>
   <div id="app">
-    <template v-if="isInitTunnelHelp">
-      <div class="container">
-        <el-tabs v-model="activeTab" type="card" style="width: 100%">
-          <el-tab-pane label="通道" name="first">
-            <tunnel-table ref="tunnelTable"></tunnel-table>
-          </el-tab-pane>
-          <el-tab-pane label="配置" name="second">
-            <tunnel-config></tunnel-config>
-          </el-tab-pane>
-          <el-tab-pane label="日志" name="third">
-            <tunnel-log></tunnel-log>
-          </el-tab-pane>
-        </el-tabs>
-      </div>
-      <div class="footer">
-        <div class="footer-box">
-          <div>
-            <template v-if="isLogin">
-              流量：{{ $calcUnit(userLimit.current) }} / {{ $calcUnit(userLimit.limit) }}
-              <span>重置时间：{{ new Date(userLimit.resetTime * 1000).toLocaleString() }}</span>
-            </template>
-            <template v-else>
-              <span>未登录</span>
-              <el-button size="mini" type="primary" @click="toLogin(LoginPlatformEnum.AADCode)">微软登陆
-              </el-button>
-              <el-button size="mini" type="primary" @click="toLogin(LoginPlatformEnum.Github)">
-                Github登陆
-              </el-button>
-            </template>
+    <template v-if="isDownloadTunnel">
+      <template v-if="isInitTunnelHelp">
+        <div class="container">
+          <el-tabs v-model="activeTab" type="card" style="width: 100%">
+            <el-tab-pane label="通道" name="first">
+              <tunnel-table ref="tunnelTable"></tunnel-table>
+            </el-tab-pane>
+            <el-tab-pane label="配置" name="second">
+              <tunnel-config></tunnel-config>
+            </el-tab-pane>
+            <el-tab-pane label="日志" name="third">
+              <tunnel-log></tunnel-log>
+            </el-tab-pane>
+          </el-tabs>
+        </div>
+        <div class="footer">
+          <div class="footer-box">
+            <div>
+              <template v-if="isLogin">
+                流量：{{ $calcUnit(userLimit.current) }} / {{ $calcUnit(userLimit.limit) }}
+                <span>重置时间：{{ new Date(userLimit.resetTime * 1000).toLocaleString() }}</span>
+              </template>
+              <template v-else>
+                <span style="margin-right: 20px;">当前未登录</span>
+                <el-button size="mini" type="primary" @click="toLogin(LoginPlatformEnum.AADCode)">微软登陆
+                </el-button>
+                <el-button size="mini" type="primary" @click="toLogin(LoginPlatformEnum.Github)">
+                  Github登陆
+                </el-button>
+              </template>
+            </div>
           </div>
         </div>
-      </div>
+      </template>
+    </template>
+    <template v-else>
+      <tunnel-download @complete="downloadComplete"></tunnel-download>
     </template>
   </div>
 </template>
