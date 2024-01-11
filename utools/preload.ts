@@ -62,7 +62,7 @@ window.mutils = {
     },
 
     async checkDevtunnelPath(filePath): Promise<boolean> {
-        console.log("checkDevtunnelPath", fs.existsSync(filePath));
+        console.log("checkDevtunnelPath", filePath, fs.existsSync(filePath));
         return fs.existsSync(filePath);
     },
 
