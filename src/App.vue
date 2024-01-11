@@ -48,7 +48,7 @@ export default {
   watch: {},
   async mounted() {
     console.log('window.mutils', window.mutils);
-    let devtunnelPath = ''; // this.config.devtunnelPath;
+    let devtunnelPath = this.config.devtunnelPath;
     if (devtunnelPath && await window.mutils.checkDevtunnelPath(devtunnelPath)){
       this.isDownloadTunnel = true
       this.initDevtunnelHelp(devtunnelPath)
@@ -95,33 +95,47 @@ export default {
       utools.shellOpenExternal(url)
     },
     async toLogin(platform) {
-      await this.$tunnelHelp.login(platform, (desc) => {
-        if (platform === LoginPlatformEnum.AADCode || platform === LoginPlatformEnum.AAD) {
-          let matches = desc.match(/code (.*?) to/);
-          if (matches.length> 0){
-            let code = matches[1]
-            // 打开页面
-            this.openLink(`https://microsoft.com/devicelogin`);
-            this.$confirm('请在浏览器中输入code=' + code, '提示', {
-              confirmButtonText: '已完成',
-              cancelButtonText: '取消',
-              type: 'warning'
-            })
+      let loadder = this.$loading({
+        lock: true,
+        text: '正在登陆...',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      });
+      try {
+        await this.$tunnelHelp.login(platform, (desc) => {
+          if (platform === LoginPlatformEnum.AADCode || platform === LoginPlatformEnum.AAD) {
+            let matches = desc.match(/code (.*?) to/);
+            if (matches.length> 0){
+              let code = matches[1]
+              // 打开页面
+              this.openLink(`https://microsoft.com/devicelogin`);
+              this.$confirm('请在浏览器中输入code：' + code, '提示', {
+                confirmButtonText: '已完成',
+                cancelButtonText: '取消',
+                type: 'warning'
+              })
+            }
+          } else if (platform === LoginPlatformEnum.GithubCode) {
+            let matches = desc.match(/enter the code:(.*)/);
+            if (matches.length> 0){
+              let code = matches[1].trim()
+              // 打开页面
+              this.openLink(`https://github.com/login/device`)
+              this.$confirm('请在浏览器中输入code：' + code, '提示', {
+                confirmButtonText: '已完成',
+                cancelButtonText: '取消',
+                type: 'warning'
+              })
+            }
           }
-        } else if (platform === LoginPlatformEnum.GithubCode) {
-          let matches = desc.match(/enter the code:(.*)/);
-          if (matches.length> 0){
-            let code = matches[1].trim()
-            // 打开页面
-            this.openLink(`https://github.com/login/device`)
-            this.$confirm('请在浏览器中输入code=' + code, '提示', {
-              confirmButtonText: '已完成',
-              cancelButtonText: '取消',
-              type: 'warning'
-            })
-          }
-        }
-      })
+        })
+      }catch (e){
+        loadder.close();
+        console.error("登陆失败",e)
+        this.$message.error("登陆失败" + e.message)
+        return;
+      }
+      loadder.close()
       this.init()
       this.$refs.tunnelTable.refreshTunnel()
     }
