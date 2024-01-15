@@ -553,7 +553,7 @@ export class TunnelRelayTunnelHost extends TunnelConnectionSession {
                 id: this.id,
                 hostId: this.hostId,
                 hostPublicKeys: this.hostPublicKeys,
-                connectionMode: TunnelConnectionMode.TunnelRelay,
+                connectionMode: "TunnelRelay",
             };
 
             let additionalQueryParameters = undefined;

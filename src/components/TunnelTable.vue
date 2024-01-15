@@ -138,6 +138,7 @@ export default {
               </el-form-item>
               <el-form-item label="映射地址">
                 <span v-if="tunnel.endpoints.length > 0">{{ tunnel.endpoints[0].tunnelUri }}</span>
+                <span v-else>未分配</span>
               </el-form-item>
               <el-form-item label="端口列表">
                 <el-link v-for="port in tunnel.ports" :key="port.portNumber" style="margin-right: 10px;"

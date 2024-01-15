@@ -129,7 +129,7 @@ export default defineComponent({
           </el-table-column>
           <el-table-column
               prop="description"
-              label="映射地址">
+              label="映射地址(IP:端口)">
             <template v-slot="scope">
               <el-input v-model="scope.row.description"
                         placeholder="留空默认映射对应本机端口"></el-input>

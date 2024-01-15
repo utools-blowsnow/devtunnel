@@ -1,5 +1,5 @@
 const {TunnelManagementHttpClient, ManagementApiVersions} = require('@microsoft/dev-tunnels-management');
-const {Tunnel, TunnelAccessControlEntryType, TunnelAccessScopes, TunnelPort, TunnelProtocol} = require('@microsoft/dev-tunnels-contracts');
+const {Tunnel,TunnelPort, TunnelProtocol} = require('@microsoft/dev-tunnels-contracts');
 const {exec, spawn} = require('child_process');
 const userAgent = 'test-connection/1.0';
 import {TunnelRelayTunnelHost} from './devtunnel/connections/tunnelRelayTunnelHost';
@@ -34,6 +34,80 @@ export enum LoginPlatformEnum {
 
     AAD = "-a",
     AADCode = "-ad",
+}
+
+enum TunnelAccessScopes {
+    /**
+     * Allows creating tunnels. This scope is valid only in policies at the global,
+     * domain, or organization level; it is not relevant to an already-created tunnel or
+     * tunnel port. (Creation of ports requires "manage" or "host" access to the tunnel.)
+     */
+    Create = "create",
+    /**
+     * Allows management operations on tunnels and tunnel ports.
+     */
+    Manage = "manage",
+    /**
+     * Allows management operations on all ports of a tunnel, but does not allow updating
+     * any other tunnel properties or deleting the tunnel.
+     */
+    ManagePorts = "manage:ports",
+    /**
+     * Allows accepting connections on tunnels as a host. Includes access to update tunnel
+     * endpoints and ports.
+     */
+    Host = "host",
+    /**
+     * Allows inspecting tunnel connection activity and data.
+     */
+    Inspect = "inspect",
+    /**
+     * Allows connecting to tunnels or ports as a client.
+     */
+    Connect = "connect"
+}
+
+enum TunnelAccessControlEntryType {
+    /**
+     * Uninitialized access control entry type.
+     */
+    None = "None",
+    /**
+     * The access control entry refers to all anonymous users.
+     */
+    Anonymous = "Anonymous",
+    /**
+     * The access control entry is a list of user IDs that are allowed (or denied) access.
+     */
+    Users = "Users",
+    /**
+     * The access control entry is a list of groups IDs that are allowed (or denied)
+     * access.
+     */
+    Groups = "Groups",
+    /**
+     * The access control entry is a list of organization IDs that are allowed (or denied)
+     * access.
+     *
+     * All users in the organizations are allowed (or denied) access, unless overridden by
+     * following group or user rules.
+     */
+    Organizations = "Organizations",
+    /**
+     * The access control entry is a list of repositories. Users are allowed access to the
+     * tunnel if they have access to the repo.
+     */
+    Repositories = "Repositories",
+    /**
+     * The access control entry is a list of public keys. Users are allowed access if they
+     * can authenticate using a private key corresponding to one of the public keys.
+     */
+    PublicKeys = "PublicKeys",
+    /**
+     * The access control entry is a list of IP address ranges that are allowed (or
+     * denied) access to the tunnel. Ranges can be IPv4, IPv6, or Azure service tags.
+     */
+    IPAddressRanges = "IPAddressRanges"
 }
 
 export class DevtunnelHelp {
@@ -210,7 +284,7 @@ export class DevtunnelHelp {
         }
     }
 
-    async createTunnel(tunnel, ports: TunnelPort[]) {
+    async createTunnel(tunnel, ports: any[]) {
         try {
             let tunnelManagementClient = this.getTunnelManagementHttpClient();
             let tunnelAccessControlEntry = {
@@ -242,7 +316,7 @@ export class DevtunnelHelp {
                 await tunnelManagementClient.updateTunnelEndpoint(tunnelInstance, {
                     id: Math.random().toString(36).substring(7),
                     hostId: Math.random().toString(36).substring(7),
-                    connectionMode: TunnelConnectionMode.TunnelRelay,
+                    connectionMode: "TunnelRelay",
                 })
             }
 
@@ -289,7 +363,7 @@ export class DevtunnelHelp {
                 await tunnelManagementClient.updateTunnelEndpoint(tunnelInstance, {
                     id: Math.random().toString(36).substring(7),
                     hostId: Math.random().toString(36).substring(7),
-                    connectionMode: TunnelConnectionMode.TunnelRelay,
+                    connectionMode: "TunnelRelay",
                 })
             }
 
@@ -338,7 +412,7 @@ export class DevtunnelHelp {
 
 
 
-            await host.connect(<Tunnel>tunnelInstance);
+            await host.connect(<any>tunnelInstance);
 
             this._hosts[tunnelId] = host;
 
