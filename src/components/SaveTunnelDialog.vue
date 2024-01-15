@@ -34,6 +34,15 @@ export default defineComponent({
       if (tunnel) {
         this.isAdd = false;
         this.form = tunnel;
+        for (const port of this.form.ports) {
+          if (!port.options)  port.options = {};
+          if (!port.options.hostHeader) {
+            port.options.hostHeader = null;
+          }
+          if (!port.options.originHeader) {
+            port.options.originHeader = null;
+          }
+        }
       } else {
         this.isAdd = true;
       }
@@ -66,13 +75,17 @@ export default defineComponent({
       try {
         // 如果带了http
         for (const port of this.form.ports) {
-          if (port.options.hostHeader && !port.options.hostHeader.startsWith('http')) {
+          if (port.options.hostHeader && port.options.hostHeader.startsWith('http')) {
             port.options.hostHeader = port.options.hostHeader.replaceAll('https://', '');
             port.options.hostHeader = port.options.hostHeader.replaceAll('http://', '');
           }
-          if (port.options.originHeader && !port.options.originHeader.startsWith('http')) {
+          if (port.options.originHeader && port.options.originHeader.startsWith('http')) {
             port.options.originHeader = port.options.originHeader.replaceAll('https://', '');
             port.options.originHeader = port.options.originHeader.replaceAll('http://', '');
+          }
+          if (port.description && port.description.startsWith('http')) {
+            port.description = port.description.replaceAll('https://', '');
+            port.description = port.description.replaceAll('http://', '');
           }
         }
         if (this.isAdd) {
@@ -143,6 +156,15 @@ export default defineComponent({
             </template>
           </el-table-column>
           <el-table-column
+              prop="description"
+              min-width="200"
+              label="映射地址(IP:端口)">
+            <template v-slot="scope">
+              <el-input v-model="scope.row.description"
+                        placeholder="留空默认映射对应本机端口"></el-input>
+            </template>
+          </el-table-column>
+          <el-table-column
               label="Host header"
               width="150">
             <template v-slot="scope">
@@ -156,15 +178,6 @@ export default defineComponent({
               <el-input v-model="scope.row.options.originHeader" ></el-input>
             </template>
           </el-table-column>
-          <el-table-column
-              prop="description"
-              label="映射地址(IP:端口)">
-            <template v-slot="scope">
-              <el-input v-model="scope.row.description"
-                        placeholder="留空默认映射对应本机端口"></el-input>
-            </template>
-          </el-table-column>
-
           <el-table-column
               label="操作">
             <template v-slot="scope">
