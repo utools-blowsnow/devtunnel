@@ -345,14 +345,13 @@ export class DevtunnelHelp {
                 includePorts: true,
             });
 
-            let deletePorts = tunnelInstance.ports.filter((port) => {
-                return !ports.find((p) => {
-                    return p.portNumber === port.portNumber
-                })
-            })
-
-            if (deletePorts.length > 0) {
-                await tunnelManagementClient.deleteTunnelPort(tunnelInstance, deletePorts[0].portNumber);
+            // let deletePorts = tunnelInstance.ports.filter((port) => {
+            //     return !ports.find((p) => {
+            //         return p.portNumber === port.portNumber
+            //     })
+            // })
+            for (const deletePort of tunnelInstance.ports) {
+                await tunnelManagementClient.deleteTunnelPort(tunnelInstance, deletePort.portNumber);
             }
 
             for (const port of ports) {

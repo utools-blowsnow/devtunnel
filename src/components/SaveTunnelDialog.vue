@@ -44,6 +44,10 @@ export default defineComponent({
         protocol: 'auto',
         portNumber: null,
         description: null,
+        options: {
+          hostHeader: null,
+          originHeader: null,
+        }
       })
     },
     removePort(scope) {
@@ -60,6 +64,17 @@ export default defineComponent({
         background: 'rgba(0, 0, 0, 0.7)'
       })
       try {
+        // 如果带了http
+        for (const port of this.form.ports) {
+          if (port.options.hostHeader && !port.options.hostHeader.startsWith('http')) {
+            port.options.hostHeader = port.options.hostHeader.replaceAll('https://', '');
+            port.options.hostHeader = port.options.hostHeader.replaceAll('http://', '');
+          }
+          if (port.options.originHeader && !port.options.originHeader.startsWith('http')) {
+            port.options.originHeader = port.options.originHeader.replaceAll('https://', '');
+            port.options.originHeader = port.options.originHeader.replaceAll('http://', '');
+          }
+        }
         if (this.isAdd) {
           await this.$tunnelHelp.createTunnel(this.form, this.form.ports);
         } else {
@@ -112,10 +127,10 @@ export default defineComponent({
                 <el-option label="自动" value="auto"></el-option>
                 <el-option label="HTTP" value="http"></el-option>
                 <el-option label="HTTPS" value="https"></el-option>
-                <el-option label="TCP" value="tcp"></el-option>
-                <el-option label="UDP" value="udp"></el-option>
-                <el-option label="SSH" value="ssh"></el-option>
-                <el-option label="RDP" value="rdp"></el-option>
+<!--                <el-option label="TCP" value="tcp"></el-option>-->
+<!--                <el-option label="UDP" value="udp"></el-option>-->
+<!--                <el-option label="SSH" value="ssh"></el-option>-->
+<!--                <el-option label="RDP" value="rdp"></el-option>-->
               </el-select>
             </template>
           </el-table-column>
@@ -125,6 +140,20 @@ export default defineComponent({
               width="150">
             <template v-slot="scope">
               <el-input v-model="scope.row.portNumber" type="number"></el-input>
+            </template>
+          </el-table-column>
+          <el-table-column
+              label="Host header"
+              width="150">
+            <template v-slot="scope">
+              <el-input v-model="scope.row.options.hostHeader" ></el-input>
+            </template>
+          </el-table-column>
+          <el-table-column
+              label="Origin header"
+              width="150">
+            <template v-slot="scope">
+              <el-input v-model="scope.row.options.originHeader" ></el-input>
             </template>
           </el-table-column>
           <el-table-column

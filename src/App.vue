@@ -49,6 +49,7 @@ export default {
   async mounted() {
     console.log('window.mutils', window.mutils);
     let devtunnelPath = this.config.devtunnelPath;
+    console.log('devtunnelPath', devtunnelPath);
     if (devtunnelPath && await window.mutils.checkDevtunnelPath(devtunnelPath)){
       this.isDownloadTunnel = true
       this.initDevtunnelHelp(devtunnelPath)
