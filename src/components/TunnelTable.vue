@@ -12,9 +12,8 @@ export default {
       loading: false,
     }
   },
-  watch: {},
   mounted() {
-    this.init();
+    this.refreshTunnel()
   },
   methods: {
     async init() {

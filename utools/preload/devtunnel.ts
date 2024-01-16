@@ -128,8 +128,8 @@ export class DevtunnelHelp {
         this._devtunnelPath = devtunnelPath;
     }
 
-    public initToken() {
-        return this.getToken()
+    public setToken(token) {
+        this._token = token;
     }
 
     private getTunnelManagementHttpClient(): any {
@@ -186,10 +186,16 @@ export class DevtunnelHelp {
     }
 
     public async isLogin() {
-        return !!this._token;
+        if (!this._token) return false;
+        try {
+            await this.userlimits();
+            return true;
+        }catch (e) {
+            return false;
+        }
     }
 
-    private async getToken() {
+    public async getToken() {
         if (this._token) {
             return this._token;
         }

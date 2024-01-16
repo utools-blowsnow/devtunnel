@@ -5,6 +5,7 @@ import TunnelConfig from "./components/TunnelConfig.vue";
 import TunnelLog from "./components/TunnelLog.vue";
 import Vue from 'vue'
 import { useConfigStore } from './stores/config'
+import { useUserStore } from './stores/user'
 import TunnelDownload from "./components/TunnelDownload.vue";
 let vConsole = new VConsole();
 vConsole.hideSwitch()
@@ -43,12 +44,17 @@ export default {
       isInitTunnelHelp: false,
 
       config: useConfigStore(),
+      userStore: useUserStore(),
     }
   },
   watch: {},
-  async mounted() {
+  async created() {
     console.log('window.mutils', window.mutils);
+    console.log('userstore', this.userStore);
     let devtunnelPath = this.config.devtunnelPath;
+    if (!devtunnelPath){
+      devtunnelPath = window.mutils.binPath() + "\\" + "devtunnel.exe"
+    }
     console.log('devtunnelPath', devtunnelPath);
     if (devtunnelPath && await window.mutils.checkDevtunnelPath(devtunnelPath)){
       this.isDownloadTunnel = true
@@ -65,30 +71,56 @@ export default {
       this.initDevtunnelHelp(devtunnelPath)
     },
     initDevtunnelHelp(devtunnelPath) {
-
       let loadder = this.$loading({
         lock: true,
         text: '正在初始化...',
         spinner: 'el-icon-loading',
         background: 'rgba(0, 0, 0, 0.7)'
       });
-      window.mutils.getDevtunnelHelp(devtunnelPath).then(async (devtunnelHelp) => {
+      window.mutils.getDevtunnelHelp(devtunnelPath).then(async (devtunnelHelp: any) => {
         try {
-          await devtunnelHelp.initToken();
-        }catch (e){}
-        Vue.prototype.$tunnelHelp = devtunnelHelp;
-        this.isInitTunnelHelp = true
-        this.init();
+          // 尝试自动登陆，从数据中获取token
+          let token = this.userStore.token
+          if (!token){
+            token = await devtunnelHelp.getToken();
+          }
+          if (!token){
+            throw new Error("未登录")
+          }
+          console.log("load token",token);
+          devtunnelHelp.setToken(token);
+          let isLogin = await devtunnelHelp.isLogin();
+          if (!isLogin){
+            this.userStore.token = null
+            this.userStore.isLogin = false;
+            this.userStore.save();
+            throw new Error("未登录")
+          }
+          this.userStore.token = token
+          this.userStore.save();
+        }catch (e){
+          console.error("未登录",e)
+          return;
+        }finally {
+          Vue.prototype.$tunnelHelp = devtunnelHelp;
+          this.isInitTunnelHelp = true
+        }
+        this.userStore.isLogin = true;
+        setInterval(() => {
+          this.userStore.isLogin = true;
+        }, 1000)
+        this.initUserLimits();
       }).catch(e => {
         this.$message.error(e.message)
       }).finally(() => {
         loadder.close()
       })
     },
-    async init() {
+    async initUserLimits() {
+      console.log("start init");
       let userlimits = await this.$tunnelHelp.userlimits();
+
       this.userLimit = userlimits
-      this.isLogin = await this.$tunnelHelp.isLogin()
     },
     openLink(url) {
       // 打开新窗口地址
@@ -103,7 +135,7 @@ export default {
         background: 'rgba(0, 0, 0, 0.7)'
       });
       try {
-        await this.$tunnelHelp.login(platform, (desc) => {
+        let token = await this.$tunnelHelp.login(platform, (desc) => {
           if (platform === LoginPlatformEnum.AADCode || platform === LoginPlatformEnum.AAD) {
             let matches = desc.match(/code (.*?) to/);
             if (matches.length> 0){
@@ -130,6 +162,9 @@ export default {
             }
           }
         })
+        this.userStore.token = token
+        this.userStore.isLogin = true;
+        this.userStore.save();
       }catch (e){
         loadder.close();
         console.error("登陆失败",e)
@@ -137,8 +172,7 @@ export default {
         return;
       }
       loadder.close()
-      this.init()
-      this.$refs.tunnelTable.refreshTunnel()
+      this.initUserLimits()
     }
   }
 }
@@ -164,7 +198,7 @@ export default {
         <div class="footer">
           <div class="footer-box">
             <div>
-              <template v-if="isLogin">
+              <template v-if="userStore.isLogin">
                 流量：{{ $calcUnit(userLimit.current) }} / {{ $calcUnit(userLimit.limit) }}
                 <span>重置时间：{{ new Date(userLimit.resetTime * 1000).toLocaleString() }}</span>
               </template>

@@ -1,6 +1,5 @@
 <script lang="ts">
 import {defineComponent} from 'vue'
-
 export default defineComponent({
   name: "SaveTunnelDialog",
   data() {
@@ -16,7 +15,7 @@ export default defineComponent({
         ports: []
       },
 
-      clusters: []
+      clusters: [],
     }
   },
   async mounted() {
