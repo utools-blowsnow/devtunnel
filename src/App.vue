@@ -81,11 +81,11 @@ export default {
         try {
           // 尝试自动登陆，从数据中获取token
           let token = this.userStore.token
-          if (!token){
+          if (!token && token != "logout"){
             token = await devtunnelHelp.getToken();
           }
           if (!token){
-            throw new Error("未登录")
+            throw new Error("未登录1")
           }
           console.log("load token",token);
           devtunnelHelp.setToken(token);
@@ -94,22 +94,19 @@ export default {
             this.userStore.token = null
             this.userStore.isLogin = false;
             this.userStore.save();
-            throw new Error("未登录")
+            throw new Error("未登录2")
           }
           this.userStore.token = token
           this.userStore.save();
         }catch (e){
-          console.error("未登录",e)
+          console.error("未登录3",e)
           return;
         }finally {
           Vue.prototype.$tunnelHelp = devtunnelHelp;
           this.isInitTunnelHelp = true
         }
+        await this.initUserLimits();
         this.userStore.isLogin = true;
-        setInterval(() => {
-          this.userStore.isLogin = true;
-        }, 1000)
-        this.initUserLimits();
       }).catch(e => {
         this.$message.error(e.message)
       }).finally(() => {
@@ -163,7 +160,6 @@ export default {
           }
         })
         this.userStore.token = token
-        this.userStore.isLogin = true;
         this.userStore.save();
       }catch (e){
         loadder.close();
@@ -171,9 +167,18 @@ export default {
         this.$message.error("登陆失败" + e.message)
         return;
       }
+      await this.initUserLimits()
+      this.userStore.isLogin = true;
       loadder.close()
-      this.initUserLimits()
-    }
+      // this.$refs.tunnelTable.refreshTunnel()
+    },
+
+    logout(){
+      this.userStore.token = "logout"
+      this.userStore.isLogin = false;
+      this.userStore.save();
+      this.$tunnelHelp.setToken(null);
+    },
   }
 }
 </script>
@@ -181,7 +186,7 @@ export default {
 <template>
   <div id="app">
     <template v-if="isDownloadTunnel">
-      <template v-if="isInitTunnelHelp">
+      <template>
         <div class="container">
           <el-tabs v-model="activeTab" type="card" style="width: 100%">
             <el-tab-pane label="通道" name="first">
@@ -201,6 +206,9 @@ export default {
               <template v-if="userStore.isLogin">
                 流量：{{ $calcUnit(userLimit.current) }} / {{ $calcUnit(userLimit.limit) }}
                 <span>重置时间：{{ new Date(userLimit.resetTime * 1000).toLocaleString() }}</span>
+                <el-button size="mini" type="danger" @click="logout" style="margin-left: 20px;">
+                  退出
+                </el-button>
               </template>
               <template v-else>
                 <span style="margin-right: 20px;">当前未登录</span>

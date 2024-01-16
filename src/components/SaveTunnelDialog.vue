@@ -1,5 +1,7 @@
 <script lang="ts">
 import {defineComponent} from 'vue'
+import {useUserStore} from "../stores/user";
+
 export default defineComponent({
   name: "SaveTunnelDialog",
   data() {
@@ -16,10 +18,22 @@ export default defineComponent({
       },
 
       clusters: [],
+
+      userStore: useUserStore(),
     }
   },
   async mounted() {
-    this.clusters = await this.$tunnelHelp.getClusters();
+    // this.clusters = await this.$tunnelHelp.getClusters();
+  },
+  watch: {
+    userStore: {
+      handler: async function (val, oldVal) {
+        if (val.isLogin) {
+          this.clusters = await this.$tunnelHelp.getClusters();
+        }
+      },
+      deep: true
+    }
   },
   methods: {
     open(tunnel = null) {

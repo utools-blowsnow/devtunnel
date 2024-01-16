@@ -1,5 +1,6 @@
 <script lang="ts">
 import SaveTunnelDialog from "./SaveTunnelDialog.vue";
+import {useUserStore} from "../stores/user";
 
 export default {
   name: 'TunnelTable',
@@ -10,16 +11,24 @@ export default {
 
       showType: 'card',
       loading: false,
+
+      userStore: useUserStore(),
     }
   },
-  mounted() {
-    this.refreshTunnel()
+  watch: {
+    userStore: {
+      handler: function (val, oldVal) {
+        if (val.isLogin){
+          this.refreshTunnel()
+        }else{
+          this.tunnels = []
+        }
+        console.log('userStore watch', val);
+      },
+      deep: true
+    }
   },
   methods: {
-    async init() {
-      this.refreshTunnel()
-    },
-
     openLink(url) {
       // 打开新窗口地址
       console.log('openLink', url);
