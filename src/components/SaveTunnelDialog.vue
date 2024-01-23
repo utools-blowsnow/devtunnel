@@ -46,16 +46,21 @@ export default defineComponent({
       }
       if (tunnel) {
         this.isAdd = false;
-        this.form = tunnel;
-        for (const port of this.form.ports) {
-          if (!port.options)  port.options = {};
-          if (!port.options.hostHeader) {
-            port.options.hostHeader = null;
-          }
-          if (!port.options.originHeader) {
-            port.options.originHeader = null;
-          }
+        this.form = {
+          ...tunnel,
+          ports: tunnel.ports.map((port) => {
+            return {
+              ...port,
+              options: {
+                hostHeader: null,
+                originHeader: null,
+                ...(port.options||{})
+              }
+            }
+          })
         }
+
+        console.log('tunnel list', this.form.ports);
       } else {
         this.isAdd = true;
       }
@@ -118,6 +123,9 @@ export default defineComponent({
     },
     onCancel() {
       this.drawer = false;
+    },
+    test(scope){
+      console.log('test', scope);
     }
   }
 })
